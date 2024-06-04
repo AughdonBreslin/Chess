@@ -1,0 +1,19 @@
+start_pos vs piece.position
+
+piece.position:
+ - I can use pieces array to grab any piece i need efficiently
+ - I need to update each piece after I make a move or capture
+ - Valid moves can be inferred relative to the starting square
+ - iterating through all of the pawns is simple
+ - when castling, king needs to know if rook exists and can castle, feels awkward
+ - when looking for checkmate, king's position can be grabbed immediately
+ - when identifying attackers, position needs to be tracked
+
+start_pos:
+ - I would need to find pieces by searching the whole board
+ - Pieces can be moved and captured freely and cleanly
+ - start_pos needs to be passed along to find valid moves
+ - entire board needs to be scanned to find all pawns* *this is for en passant, since pawns can only be en_passantable 2 from their starting squares, this could be made elegantly
+ - board finds king and rook, feels more clean
+ - entire board needs to be scanned for king
+ - can't cleanly scan board for pieces that are attacking a king
