@@ -1,4 +1,5 @@
 from piece_info import *
+import numpy as np
 
 class ChessPiece:
     def __init__(self, color, type):
@@ -176,18 +177,19 @@ class Pawn(ChessPiece):
         self.en_passantable = False
 
     def promotion(self):
-        piece = input("Enter the piece to which your pawn promotes (Q, R, B, N, enter to escape): ").lower()
-        if piece == "queen" or piece == "q":
-            return Queen(self.color)
-        elif piece == "rook" or piece == "r":
-            return Rook(self.color)
-        elif piece == "bishop" or piece == "b":
-            return Bishop(self.color)
-        elif piece == "knight" or piece == "n":
-            return Knight(self.color)
-        else:
-            # print("Invalid piece.")
-            return False
+        return [Queen(self.color), Rook(self.color), Bishop(self.color), Knight(self.color)][np.random.randint(0, 4)]
+        # piece = input("Enter the piece to which your pawn promotes (Q, R, B, N, enter to escape): ").lower()
+        # if piece == "queen" or piece == "q":
+        #     return Queen(self.color)
+        # elif piece == "rook" or piece == "r":
+        #     return Rook(self.color)
+        # elif piece == "bishop" or piece == "b":
+        #     return Bishop(self.color)
+        # elif piece == "knight" or piece == "n":
+        #     return Knight(self.color)
+        # else:
+        #     # print("Invalid piece.")
+        #     return False
 
     def is_valid_move(self, start_pos, end_pos, board):
         # Check out of bounds
