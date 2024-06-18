@@ -70,7 +70,7 @@ FEN_MAP: dict[str, PieceType] = {
 }
 
 def board_to_coord(board: str) -> list[int, int]:
-    return ord(board[1]) - ord('1'), ord(board[0]) - ord('A')
+    return ord(board[1]) - ord('1'), 7 - (ord(board[0]) - ord('A'))
 
 def coord_to_board(coord: list[int, int]) -> str:
-    return chr(coord[1] + ord('A')) + str(coord[0] + 1)
+    return chr(7 - coord[1] + ord('A')) + str(coord[0] + 1)

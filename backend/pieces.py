@@ -293,7 +293,7 @@ class King(ChessPiece):
         if board.check(start_pos):
             # print("Cannot castle: King is in check.")
             return False
-        if start_pos[0] != 7*self.color or start_pos[1] != 4:
+        if start_pos[0] != 7*self.color or start_pos[1] != 3:
             # print(f"Cannot castle: King not in starting square at {coord_to_board((7*self.color, 4))}.")
             return False
         if not self.can_castle:
@@ -303,7 +303,7 @@ class King(ChessPiece):
             # print("Cannot castle: King is not moving two squares.")
             return False
         
-        king_side = end_pos[1] > start_pos[1]
+        king_side = end_pos[1] < start_pos[1]
         rook_pos = (start_pos[0], 7*king_side)
         rook = board.board[rook_pos]
         if rook != ROOK:
@@ -313,9 +313,9 @@ class King(ChessPiece):
             # print(f"Cannot castle: At some point rook has moved from {coord_to_board(rook_pos)}.")
             return False
         
-        if board.board[start_pos[0]][start_pos[1] + 1*(-1)**(1-king_side)] != EMPTY or \
-            board.board[start_pos[0]][start_pos[1] + 2*(-1)**(1-king_side)] != EMPTY or \
-            (not king_side and board.board[start_pos[0]][start_pos[1] + 3*(-1)**(1-king_side)] != EMPTY):
+        if board.board[start_pos[0]][start_pos[1] + 1*(-1)**(king_side)] != EMPTY or \
+            board.board[start_pos[0]][start_pos[1] + 2*(-1)**(king_side)] != EMPTY or \
+            (not king_side and board.board[start_pos[0]][start_pos[1] + 3*(-1)**(king_side)] != EMPTY):
             # print("Cannot castle: Path is not clear.")
             return False
         

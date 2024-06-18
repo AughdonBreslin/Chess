@@ -15,10 +15,10 @@ class Board():
             self.setup()
 
     def setup(self):
-        self.board[0] = [Rook(WHITE), Knight(WHITE), Bishop(WHITE), Queen(WHITE), King(WHITE), Bishop(WHITE), Knight(WHITE), Rook(WHITE)]
+        self.board[0] = [Rook(WHITE), Knight(WHITE), Bishop(WHITE), King(WHITE), Queen(WHITE), Bishop(WHITE), Knight(WHITE), Rook(WHITE)]
         self.board[1] = [Pawn(WHITE) for _ in range(8)]
         self.board[6] = [Pawn(BLACK) for _ in range(8)]
-        self.board[7] = [Rook(BLACK), Knight(BLACK), Bishop(BLACK), Queen(BLACK), King(BLACK), Bishop(BLACK), Knight(BLACK), Rook(BLACK)]
+        self.board[7] = [Rook(BLACK), Knight(BLACK), Bishop(BLACK), King(BLACK), Queen(BLACK), Bishop(BLACK), Knight(BLACK), Rook(BLACK)]
 
     def load_fen(self, fen: str):
         fen = fen.split(" ")
@@ -92,7 +92,7 @@ class Board():
     def castle_rook(self, start_pos, end_pos, king):
         direction = end_pos[1] > start_pos[1]
         rook_start_pos = (7*self.current_player, 7*direction)
-        rook_end_pos = (7*self.current_player, 7*direction + 2*(-1)**direction + 1 - direction)
+        rook_end_pos = (7*self.current_player, 7*direction + 2*(-1)**direction - direction)
         self.board[rook_end_pos] = self.board[rook_start_pos]
         self.board[rook_end_pos].can_castle = False
         self.board[rook_start_pos] = Empty()
@@ -242,7 +242,7 @@ class Board():
         return False
 
     def print_board(self):
-        print("  | A | B | C | D | E | F | G | H |")
+        print("  | H | G | F | E | D | C | B | A |")
         print("-" * 37)
         for i in range(8):
             print(str(i+1) + " | ", end="")
@@ -250,4 +250,4 @@ class Board():
                 print(str(self.board[i][j]) + " | ", end="")
             print(str(i+1), end="")
             print("\n" + "-" * 37)
-        print("  | A | B | C | D | E | F | G | H |")
+        print("  | H | G | F | E | D | C | B | A |")

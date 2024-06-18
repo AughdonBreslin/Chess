@@ -61,5 +61,8 @@ class Chess():
 
 if __name__ == "__main__":
     chess = Chess()
+    games_played = 0
     while True:
-        chess.play_game(chess.parse_args(), player_w=None, player_b=RandomBot())
+        chess.play_game(chess.parse_args(), player_w=RandomBot(), player_b=RandomBot())
+        games_played += 1
+        print(f"GAMES PLAYED: {games_played} ##############################################################################################################################")

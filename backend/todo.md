@@ -1,5 +1,5 @@
 To do:
- - Implement threefold repitition
+ - Implement threefold repetition
 
 
 Potentials:
