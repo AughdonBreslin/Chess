@@ -1,5 +1,5 @@
 from enum import Enum
-from numpy import array
+from typing import Tuple
 
 class PieceType(Enum):
     EMPTY = "empty"
@@ -69,8 +69,10 @@ FEN_MAP: dict[str, PieceType] = {
     "n": KNIGHT,
 }
 
-def board_to_coord(board: str) -> list[int, int]:
-    return ord(board[1]) - ord('1'), 7 - (ord(board[0]) - ord('A'))
+def board_to_coord(board: str) -> Tuple[int, int]:
+    file = board[0].upper()
+    rank = board[1]
+    return ord(rank) - ord('1'), 7 - (ord(file) - ord('A'))
 
-def coord_to_board(coord: list[int, int]) -> str:
+def coord_to_board(coord: Tuple[int, int]) -> str:
     return chr(7 - coord[1] + ord('A')) + str(coord[0] + 1)

@@ -1,5 +1,6 @@
-from piece_info import *
 import numpy as np
+
+from piece_info import *
 
 class ChessPiece:
     def __init__(self, color, type):
@@ -22,11 +23,17 @@ class ChessPiece:
         return PIECE_STR[self.type][self.color.value]
     
 class Empty(ChessPiece):
-    def __init__(self):
+    def __init__(self, color=NONE):
         super().__init__(NONE, EMPTY)
 
     def is_valid_move(self, start_pos, end_pos, board):
         return False
+    
+    def get_line_of_sight(self, start_pos, end_pos, board):
+        return []
+    
+    def get_valid_moves(self, start_pos, board):
+        return []
     
 class Rook(ChessPiece):
     def __init__(self, color):
@@ -44,7 +51,13 @@ class Rook(ChessPiece):
             # print("Move is not horizontal or vertical.")
             return False
         
+        # Check if end position is a friendly piece
+        if board.board[end_pos].color == self.color:
+            # print(f"Rook is trying to capture its own {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
+            return False
+        
         # Check if the path is blocked
+        axis = start_pos[0] == end_pos[0]
         if start_pos[0] == end_pos[0]:
             for i in range(min(start_pos[1], end_pos[1]) + 1, max(start_pos[1], end_pos[1])):
                 if board.board[start_pos[0]][i] != EMPTY:
@@ -61,7 +74,9 @@ class Rook(ChessPiece):
         if self.is_valid_move(start_pos, end_pos, board):
             axis = start_pos[0] == end_pos[0]
             dir = 1 if end_pos[axis] > start_pos[axis] else -1
-            return [(start_pos[0] + (1-axis)*dir*i, start_pos[1] + axis*dir*i) for i in range(start_pos[axis]+1*dir, end_pos[axis])]
+            print(start_pos, end_pos, range(start_pos[axis]+dir, end_pos[axis], dir))
+            return [(axis*start_pos[0] + (1-axis)*dir*i, (1-axis)*start_pos[1] + axis*dir*i) for i in range(start_pos[axis]+dir, end_pos[axis], dir)]
+        return []
     
     def get_valid_moves(self, start_pos, board):
         moves = []
@@ -90,6 +105,11 @@ class Bishop(ChessPiece):
             # print("Move is not diagonal.")
             return False
         
+        # Check if end position is a friendly piece
+        if board.board[end_pos].color == self.color:
+            # print(f"Bishop is trying to capture its own {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
+            return False
+        
         # Check if the path is blocked
         up = end_pos[0] > start_pos[0]
         right = end_pos[1] > start_pos[1]
@@ -105,7 +125,7 @@ class Bishop(ChessPiece):
         if self.is_valid_move(start_pos, end_pos, board):
             up = end_pos[0] > start_pos[0]
             right = end_pos[1] > start_pos[1]
-            return [(start_pos[0] - i*(-1)**up, start_pos[1] - i*(-1)**right) for i in range(1, (start_pos[0] - end_pos[0])*(-1)**up)]
+            return [(start_pos[0] - i*(-1)**up, start_pos[1] - i*(-1)**right) for i in range(1, (start_pos[0] - end_pos[0])*(-1)**up, )]
 
     def get_valid_moves(self, start_pos, board):
         moves = []
@@ -325,6 +345,9 @@ class King(ChessPiece):
         
         # print(f"{self.color} can castle {['queen', 'king'][king_side]} side.")
         return True
+    
+    def get_line_of_sight(self, start_pos, end_pos, board):
+        return []
     
     def get_valid_moves(self, start_pos, board):
         moves = []

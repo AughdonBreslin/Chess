@@ -1,5 +1,7 @@
 import numpy as np
+
 from piece_info import coord_to_board
+
 class ChessBot():
     def get_move(self, board):
         pass

@@ -1,9 +1,9 @@
 from pieces import *
 
 class Board():
-    def __init__(self, fen: str = None, board = []):
-        self.current_player = WHITE
-        self.board = array([[Empty() for j in range(8)] for i in range(8)])
+    def __init__(self, fen: str = None, board = [], current_player = WHITE):
+        self.current_player = current_player
+        self.board = np.array([[Empty() for j in range(8)] for i in range(8)])
         self.en_passant_target_square = ""
         self.half_move_clock = 0
         self.moves = 1
@@ -19,6 +19,25 @@ class Board():
         self.board[1] = [Pawn(WHITE) for _ in range(8)]
         self.board[6] = [Pawn(BLACK) for _ in range(8)]
         self.board[7] = [Rook(BLACK), Knight(BLACK), Bishop(BLACK), King(BLACK), Queen(BLACK), Bishop(BLACK), Knight(BLACK), Rook(BLACK)]
+
+    def clear(self):
+        self.board = np.array([[Empty() for j in range(8)] for i in range(8)])
+        self.current_player = WHITE
+        self.en_passant_target_square = ""
+        self.half_move_clock = 0
+        self.moves = 1
+
+    def char_to_piece(self, char: str) -> ChessPiece:
+        color = WHITE if char.isupper() else BLACK
+        char = char.lower()
+        return {
+            "p": Pawn(color),
+            "r": Rook(color),
+            "n": Knight(color),
+            "b": Bishop(color),
+            "q": Queen(color),
+            "k": King(color)
+        }[char]
 
     def load_fen(self, fen: str):
         fen = fen.split(" ")
@@ -52,20 +71,6 @@ class Board():
         self.en_passant_target_square = fen[3]
         self.half_move_clock = int(fen[4])
         self.moves = int(fen[5])
-        
-
-
-    def char_to_piece(self, char: str) -> ChessPiece:
-        color = WHITE if char.isupper() else BLACK
-        char = char.lower()
-        return {
-            "p": Pawn(color),
-            "r": Rook(color),
-            "n": Knight(color),
-            "b": Bishop(color),
-            "q": Queen(color),
-            "k": King(color)
-        }[char]
 
     def switch_player(self):
         if self.current_player == WHITE:
@@ -76,18 +81,6 @@ class Board():
             for pawn_pos in self.find_pieces(PAWN, WHITE):
                 self.board[pawn_pos].en_passantable = False 
             self.current_player = WHITE
-
-    def all_valid_moves(self, verbose=False):
-        all_valid_moves = []
-        for i in range(8):
-            for j in range(8):
-                piece = self.board[i][j]
-                if piece.color == self.current_player:
-                    valid_moves = piece.get_valid_moves((i, j), self)
-                    if verbose:
-                        print(f"{piece}({coord_to_board((i, j))}):", [f"{coord_to_board(start_pos)} -> {coord_to_board(end_pos)}" for (start_pos, end_pos) in valid_moves])
-                    all_valid_moves += valid_moves
-        return all_valid_moves
     
     def castle_rook(self, start_pos, end_pos, king):
         direction = end_pos[1] > start_pos[1]
@@ -178,6 +171,18 @@ class Board():
             print(f"Warning: Piece {color} {piece} not found.")
         return piece_positions
     
+    def all_valid_moves(self, verbose=False):
+        all_valid_moves = []
+        for i in range(8):
+            for j in range(8):
+                piece = self.board[i][j]
+                if piece.color == self.current_player:
+                    valid_moves = piece.get_valid_moves((i, j), self)
+                    if verbose:
+                        print(f"{piece}({coord_to_board((i, j))}):", [f"{coord_to_board(start_pos)} -> {coord_to_board(end_pos)}" for (start_pos, end_pos) in valid_moves])
+                    all_valid_moves += valid_moves
+        return all_valid_moves
+    
     def try_move(self, start_pos, end_pos):
         original = self.board[end_pos]
         self.board[end_pos] = self.board[start_pos]
@@ -251,3 +256,6 @@ class Board():
             print(str(i+1), end="")
             print("\n" + "-" * 37)
         print("  | H | G | F | E | D | C | B | A |")
+
+class Controller():
+    pass

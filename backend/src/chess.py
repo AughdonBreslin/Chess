@@ -1,4 +1,5 @@
 import argparse
+
 from board import *
 from player import *
 
@@ -13,7 +14,7 @@ class Chess():
         fen = args.fen
         board = Board(fen)
         board.print_board()
-        while not board.checkmate(args.verbose) and not board.stalemate() and not board.half_move_clock >= 50:
+        while not board.checkmate(args.verbose) and not board.stalemate(args.verbose) and board.half_move_clock < 50:
             if args.verbose:
                 print(f"Half move clock: {board.half_move_clock}")
             print("Current player: " + str(board.current_player))
@@ -57,12 +58,10 @@ class Chess():
             print("Game over. Unknown reason.")
         return 0.5
 
-
-
 if __name__ == "__main__":
     chess = Chess()
     games_played = 0
     while True:
-        chess.play_game(chess.parse_args(), player_w=RandomBot(), player_b=RandomBot())
+        chess.play_game(chess.parse_args(), player_w=None, player_b=RandomBot())
         games_played += 1
         print(f"GAMES PLAYED: {games_played} ##############################################################################################################################")
