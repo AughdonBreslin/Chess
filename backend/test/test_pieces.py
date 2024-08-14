@@ -142,6 +142,9 @@ class TestPieces(unittest.TestCase):
         self.assertEqual(piece.is_valid_move(board_to_coord("E4"), board_to_coord("H1"), self.board), True)
         self.assertEqual(piece.is_valid_move(board_to_coord("E4"), board_to_coord("H7"), self.board), False) # Pawn in the way
         self.assertEqual(piece.get_line_of_sight(board_to_coord("E4"), board_to_coord("G6"), self.board), [board_to_coord("F5")])
+        self.assertEqual(piece.get_line_of_sight(board_to_coord("E4"), board_to_coord("A8"), self.board), [board_to_coord("D5"), board_to_coord("C6"), board_to_coord("B7")])
+        self.assertEqual(piece.get_line_of_sight(board_to_coord("E4"), board_to_coord("H1"), self.board), [board_to_coord("F3"), board_to_coord("G2")])
+        self.assertEqual(piece.get_line_of_sight(board_to_coord("E4"), board_to_coord("C2"), self.board), [board_to_coord("D3")])
         self.assertEqual(set(piece.get_valid_moves(board_to_coord("E4"), self.board)), set([(board_to_coord("E4"), board_to_coord("F5")), (board_to_coord("E4"), board_to_coord("G6")),
                                                                                              (board_to_coord("E4"), board_to_coord("D3")), (board_to_coord("E4"), board_to_coord("C2")), 
                                                                                              (board_to_coord("E4"), board_to_coord("D5")), (board_to_coord("E4"), board_to_coord("C6")), (board_to_coord("E4"), board_to_coord("B7")),

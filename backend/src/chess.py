@@ -13,8 +13,8 @@ class Chess():
     def play_game(self, args=None, player_w=None, player_b=None):
         fen = args.fen
         board = Board(fen)
-        board.print_board()
         while not board.checkmate(args.verbose) and not board.stalemate(args.verbose) and board.half_move_clock < 50:
+            board.print_board(board.current_player)
             if args.verbose:
                 print(f"Half move clock: {board.half_move_clock}")
             print("Current player: " + str(board.current_player))
@@ -45,7 +45,6 @@ class Chess():
                 end_pos = (int(move[2]), int(move[3]))
 
             board.move(start_pos, end_pos)
-            board.print_board()
 
         if board.checkmate():
             print(f"Game over. {board.current_player} loses.")
@@ -62,6 +61,6 @@ if __name__ == "__main__":
     chess = Chess()
     games_played = 0
     while True:
-        chess.play_game(chess.parse_args(), player_w=None, player_b=RandomBot())
+        chess.play_game(chess.parse_args(), player_w=None, player_b=None)
         games_played += 1
         print(f"GAMES PLAYED: {games_played} ##############################################################################################################################")

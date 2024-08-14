@@ -1,29 +1,34 @@
-import numpy as np
+import numpy as np # type: ignore
 
 from piece_info import *
 
 class ChessPiece:
-    def __init__(self, color, type):
+    def __init__(self, color: Color, type: PieceType):
         self.color = color
         self.type = type
-    
-    def out_of_bounds(self, position):
-        return position[0] < 0 or position[0] > 7 or position[1] < 0 or position[1] > 7
 
     def __eq__(self, other):
-        return self.type == other
+        match other:
+            case PieceType():
+                return self.type == other
+            case Color():
+                return self.color == other
+            case ChessPiece():
+                return self.type == other.type and self.color == other.color
+            case bad:
+                raise Exception(f"Error: Testing equality against incompatible type {bad}.")
 
     def __ne__(self, other):
         return self.type != other
 
     def __str__(self):
         return PIECE_STR[self.type][self.color.value]
-
-    def __repr__(self):
-        return PIECE_STR[self.type][self.color.value]
+    
+    def out_of_bounds(self, position: Tuple[int, int]):
+        return position[0] < 0 or position[0] > 7 or position[1] < 0 or position[1] > 7
     
 class Empty(ChessPiece):
-    def __init__(self, color=NONE):
+    def __init__(self):
         super().__init__(NONE, EMPTY)
 
     def is_valid_move(self, start_pos, end_pos, board):
@@ -125,7 +130,7 @@ class Bishop(ChessPiece):
         if self.is_valid_move(start_pos, end_pos, board):
             up = end_pos[0] > start_pos[0]
             right = end_pos[1] > start_pos[1]
-            return [(start_pos[0] - i*(-1)**up, start_pos[1] - i*(-1)**right) for i in range(1, (start_pos[0] - end_pos[0])*(-1)**up, )]
+            return [(start_pos[0] - i*(-1)**up, start_pos[1] - i*(-1)**right) for i in range(1, (start_pos[0] - end_pos[0])*(-1)**up)]
 
     def get_valid_moves(self, start_pos, board):
         moves = []

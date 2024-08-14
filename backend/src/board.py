@@ -1,31 +1,70 @@
 from pieces import *
+from typing import Any, List
 
-class Board():
-    def __init__(self, fen: str = None, board = [], current_player = WHITE):
-        self.current_player = current_player
-        self.board = np.array([[Empty() for j in range(8)] for i in range(8)])
-        self.en_passant_target_square = ""
-        self.half_move_clock = 0
-        self.moves = 1
-        if board:
-            self.board = board
-        elif fen:
+class Board:
+    def __init__(self, fen: str = None, current_player: Color = WHITE):
+        self.board = np.array([[Empty() for _ in range(8)] for _ in range(8)])
+        if fen:
             self.load_fen(fen)
         else:
             self.setup()
+        self.current_player = current_player
+        self.en_passant_target_square = ""
+        self.half_move_clock = 0
+        self.moves = 1
+        self.history = []
 
     def setup(self):
-        self.board[0] = [Rook(WHITE), Knight(WHITE), Bishop(WHITE), King(WHITE), Queen(WHITE), Bishop(WHITE), Knight(WHITE), Rook(WHITE)]
+        self.board = np.array([[Empty() for _ in range(8)] for _ in range(8)])
+        self.board[0] = [Rook(WHITE), Knight(WHITE), Bishop(WHITE), King(WHITE),
+                         Queen(WHITE), Bishop(WHITE), Knight(WHITE), Rook(WHITE)]
         self.board[1] = [Pawn(WHITE) for _ in range(8)]
         self.board[6] = [Pawn(BLACK) for _ in range(8)]
-        self.board[7] = [Rook(BLACK), Knight(BLACK), Bishop(BLACK), King(BLACK), Queen(BLACK), Bishop(BLACK), Knight(BLACK), Rook(BLACK)]
+        self.board[7] = [Rook(BLACK), Knight(BLACK), Bishop(BLACK), King(BLACK),
+                         Queen(BLACK), Bishop(BLACK), Knight(BLACK), Rook(BLACK)]
 
     def clear(self):
-        self.board = np.array([[Empty() for j in range(8)] for i in range(8)])
+        self.board = np.array([[Empty() for _ in range(8)] for _ in range(8)])
         self.current_player = WHITE
         self.en_passant_target_square = ""
         self.half_move_clock = 0
         self.moves = 1
+
+    def find_piece(self, piece, color=NONE):
+        if color == NONE:
+            color = self.current_player
+
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if self.board[i][j] == piece and self.board[i][j].color == color:
+                    # print(f"Piece {self.board[i][j]} found at {coord_to_board((i, j))}.")
+                    return (i, j)
+        print(f"Warning: Piece {self.current_player} {piece} not found.")
+        return ()
+    
+    def find_pieces(self, piece, color=NONE):
+        if color == NONE:
+            color = self.current_player
+        piece_positions = []
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if self.board[i][j] == piece and self.board[i][j].color == color:
+                    # print(f"Piece {self.board[i][j]} found at {coord_to_board((i, j))}.")
+                    piece_positions.append((i, j))
+        if not piece_positions:
+            print(f"Warning: Piece {color} {piece} not found.")
+        return piece_positions
+    
+    def print_board(self, color: Color = WHITE):
+        print("  " + "| A | B | C | D | E | F | G | H |"[::(-1)**(color)])
+        print("-" * 37)
+        for i in range(7-7*color, 8-9*(1-color), (-1)**(1-color)):
+            print(str(i+1) + " | ", end="")
+            for j in range(7-7*color, 8-9*(1-color), (-1)**(1-color)):
+                print(str(self.board[i][j]) + " | ", end="")
+            print(str(i+1), end="")
+            print("\n" + "-" * 37)
+        print("  " + "| A | B | C | D | E | F | G | H |"[::(-1)**(color)])
 
     def char_to_piece(self, char: str) -> ChessPiece:
         color = WHITE if char.isupper() else BLACK
@@ -48,7 +87,7 @@ class Board():
                 if char.isdigit():
                     j += int(char)
                 else:
-                    self.board[7-i][j] = self.char_to_piece(char)
+                    self.board[7-i][7-j] = self.char_to_piece(char)
                     j += 1
 
         self.current_player = WHITE if fen[1] == "w" else BLACK
@@ -71,6 +110,11 @@ class Board():
         self.en_passant_target_square = fen[3]
         self.half_move_clock = int(fen[4])
         self.moves = int(fen[5])
+
+    def to_fen(self, board):
+        pass
+
+    # def moves_made
 
     def switch_player(self):
         if self.current_player == WHITE:
@@ -146,31 +190,6 @@ class Board():
             pass
         return attackers_positions
     
-    def find_piece(self, piece, color=NONE):
-        if color == NONE:
-            color = self.current_player
-
-        for i in range(len(self.board)):
-            for j in range(len(self.board[i])):
-                if self.board[i][j] == piece and self.board[i][j].color == color:
-                    # print(f"Piece {self.board[i][j]} found at {coord_to_board((i, j))}.")
-                    return (i, j)
-        print(f"Warning: Piece {self.current_player} {piece} not found.")
-        return ()
-    
-    def find_pieces(self, piece, color=NONE):
-        if color == NONE:
-            color = self.current_player
-        piece_positions = []
-        for i in range(len(self.board)):
-            for j in range(len(self.board[i])):
-                if self.board[i][j] == piece and self.board[i][j].color == color:
-                    # print(f"Piece {self.board[i][j]} found at {coord_to_board((i, j))}.")
-                    piece_positions.append((i, j))
-        if not piece_positions:
-            print(f"Warning: Piece {color} {piece} not found.")
-        return piece_positions
-    
     def all_valid_moves(self, verbose=False):
         all_valid_moves = []
         for i in range(8):
@@ -245,17 +264,7 @@ class Board():
             # print(f"{self.current_player} has been stalemated!")
             return True
         return False
-
-    def print_board(self):
-        print("  | H | G | F | E | D | C | B | A |")
-        print("-" * 37)
-        for i in range(8):
-            print(str(i+1) + " | ", end="")
-            for j in range(8):
-                print(str(self.board[i][j]) + " | ", end="")
-            print(str(i+1), end="")
-            print("\n" + "-" * 37)
-        print("  | H | G | F | E | D | C | B | A |")
-
-class Controller():
-    pass
+    
+    def threefold_repititon():
+        # FEN Counter
+        pass

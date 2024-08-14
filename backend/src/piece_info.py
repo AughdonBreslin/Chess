@@ -25,12 +25,13 @@ class Color(Enum):
         return self.value
     
     def __eq__(self, other):
-        if isinstance(other, Color):
-            return self.name == other.name
-        elif isinstance(other, int):
-            return self.value == other
-        else:
-            raise TypeError("Invalid comparison: other must be a Color or an integer")
+        match other:
+            case Color():
+                return self.name == other.name
+            case int():
+                return self.value == other
+            case bad:
+                raise TypeError(f"Error: Testing equality against incompatible type {bad}.")
     
     def __sub__(self, other):
         return self.value - other
