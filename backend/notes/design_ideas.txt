@@ -1,0 +1,42 @@
+Pieces:
+ - Has no understanding of surroundings
+ - Returns list of operational moves based on start_pos
+ - Returns if can reach end_pos assuming clear space
+ - done
+
+Evaluator:
+ - Has instance of board
+ - updates instance of board when controller moves
+ - evaluates termination conditions
+    - checkmate, stalemate, threefold, 50-move, insufficiency
+ - mostly done
+
+<Piece>(Evaluator):
+ - Inherits instance of board
+ - Checks if piece operationally can move to end_pos
+    - Checks if another piece in the way
+    - Checks if moving opens up check
+    - Checks any additional requirements
+ - attacking(square)
+ - mostly done
+
+Operator/Controller:
+ - has instance of board
+ - Has no understanding of legality
+    - Invokes Evaluator, then moves piece on board
+ - gets move from end user
+ - parses it to actual move
+ - PROBLEM:
+   - how the fuck am i parsing a promotion
+   - will it be normal and then stall until further input? surely but sucks
+   - will it be all encompassing? surely not but faster
+   - should i do both? input w mouse vs input with algebraic notation
+
+Board:
+ - Is the board
+ - Only used for storage of pieces
+ - Has info like move history, move count, move clock, current player, en_passante target square, castling rights
+GameInfo:
+ - upon operator movement, updates information
+ - should just be board now that im thinking about it
+ - 

@@ -1,66 +1,38 @@
 import argparse
 
-from board import *
-from player import *
+from board import Board
+from evaluator import GameEvaluator
+from handler import Handler
 
-class Chess():
-    def parse_args(self):
+class Chess:
+    def __init__(self, fen: str = None, moves: list[str] = None, verbose: bool = False) -> None:
+        self.args = self.parse_args()
+        self.fen = self.args.fen if self.args.fen else fen
+        self.verbose = self.args.verbose if self.args.verbose else verbose
+        self.moves = moves
+
+    def parse_args(self) -> argparse.Namespace:
         parser = argparse.ArgumentParser(description="Chess game.")
         parser.add_argument("-f", "--fen", type=str, help="FEN string to load.")
-        parser.add_argument("-v", "--verbose", action="store_true", help="Print all valid moves.")
+        parser.add_argument("-v", "--verbose", action="store_true", help="Prints additional info at each move.")
         return parser.parse_args()
 
-    def play_game(self, args=None, player_w=None, player_b=None):
-        fen = args.fen
-        board = Board(fen)
-        while not board.checkmate(args.verbose) and not board.stalemate(args.verbose) and board.half_move_clock < 50:
-            board.print_board(board.current_player)
-            if args.verbose:
-                print(f"Half move clock: {board.half_move_clock}")
-            print("Current player: " + str(board.current_player))
-            if args.verbose:
-                board.all_valid_moves(args.verbose)
-
-            if player_w and board.current_player == WHITE:
-                move = player_w.get_move(board)
-                start_pos = move[0]
-                end_pos = move[1]
-            elif player_b and board.current_player == BLACK:
-                move = player_b.get_move(board)
-                start_pos = move[0]
-                end_pos = move[1]
+    def play(self) -> int:
+        board = Board(self.fen)
+        evaluator = GameEvaluator(board)
+        handler = Handler()
+        game_over = evaluator.is_game_over()
+        while not game_over["game_over"]:
+            print(repr(board) if self.verbose else str(board))
+            move = handler.get_move()
+            move = handler.parse_move(move)
+            validity = evaluator.is_valid(move["start_pos"], move["end_pos"])
+            if validity["valid"]:
+                board.move(move["start_pos"], move["end_pos"])
             else:
-                move = input("Enter a move: ")
-                if len(move) != 4:
-                    print("Invalid move. Please enter a move in the format 'e2e4'.")
-                    continue
-                if move[0] not in "abcdefgh" or move[1] not in "12345678" or move[2] not in "abcdefgh" or move[3] not in "12345678":
-                    print("Invalid move. Please enter a move in the format 'e2e4'.")
-                    continue
-
-                move = [char.upper() for char in move]
-                move[0], move[1], move[2], move[3] = board_to_coord(move[0:2]) + board_to_coord(move[2:4])
-
-                start_pos = (int(move[0]), int(move[1]))
-                end_pos = (int(move[2]), int(move[3]))
-
-            board.move(start_pos, end_pos)
-
-        if board.checkmate():
-            print(f"Game over. {board.current_player} loses.")
-            return 1-board.current_player
-        elif board.stalemate():
-            print(f"Game over. {board.current_player} has been stalemated.")  
-        elif board.half_move_clock >= 50:
-            print("Game over. 50-move rule.")
-        else:
-            print("Game over. Unknown reason.")
-        return 0.5
-
+                print(validity)
+        
 if __name__ == "__main__":
     chess = Chess()
-    games_played = 0
-    while True:
-        chess.play_game(chess.parse_args(), player_w=None, player_b=None)
-        games_played += 1
-        print(f"GAMES PLAYED: {games_played} ##############################################################################################################################")
+    chess.play()
+

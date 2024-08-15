@@ -1,6 +1,6 @@
 from board import Board
 from piece_info import EMPTY, KING, PAWN, ROOK, board_to_coord
-from pieces import ChessPiece
+from pieces import ChessPiece, Pawn
 
 class GameEvaluator:
     def __init__(self, board: Board):
@@ -8,9 +8,9 @@ class GameEvaluator:
 
     def set_piece_eval(self, piece: ChessPiece, position: tuple[int, int]):
         if piece == PAWN:
-            self.piece_eval = Pawn(piece, position, self.board)
+            self.piece_eval = PawnEvaluator(piece, position, self.board)
         elif piece == KING:
-            self.piece_eval = King(piece, position, self.board)
+            self.piece_eval = KingEvaluator(piece, position, self.board)
         else:
             self.piece_eval = PieceEvaluator(piece, position, self.board)
 
@@ -94,8 +94,14 @@ class GameEvaluator:
                     if piece.color != self.board.current_player:
                         continue
                     self.set_piece_eval(piece, (i, j))
-                    if self.piece_eval.is_valid(attack_pos)["valid"]:
+                    validity = self.piece_eval.is_valid(attack_pos)
+                    if validity["valid"]:
                         capturing_moves.append(((i, j), attack_pos))
+                    if piece == PAWN and self.board.en_passant_square != "-":
+                        validity = self.piece_eval.is_valid(board_to_coord(self.board.en_passant_square))
+                        print(validity)
+                        if validity["valid"]:
+                            capturing_moves.append(((i, j), board_to_coord(self.board.en_passant_square)))
             for square in attacker.line_of_sight(attack_pos, king_pos):
                 for i in range(len(self.board)):
                     for j in range(len(self.board[i])):
@@ -123,15 +129,8 @@ class GameEvaluator:
                 if piece.color != self.board.current_player:
                     continue
                 self.set_piece_eval(piece, (i, j))
-                if piece == PAWN:
-                    all_valid_moves.extend([((i, j), move) for move in piece.moves((i, j)) + piece.attack_options((i, j)) \
-                                             if self.piece_eval.is_valid(move)["valid"]])
-                elif piece == KING:
-                    all_valid_moves.extend([((i, j), move) for move in piece.moves((i, j)) + piece.castle_options((i, j)) \
-                                             if self.piece_eval.is_valid(move)["valid"]])
-                else:
-                    all_valid_moves.extend([((i, j), move) for move in piece.moves((i, j))  \
-                                            if self.piece_eval.is_valid(move)["valid"]])
+                all_valid_moves.extend([((i, j), move) for move in piece.moves((i, j))  \
+                                        if self.piece_eval.is_valid(move)["valid"]])
         res["stalemate"] = not all_valid_moves
         res["moves"] = all_valid_moves
         return res
@@ -143,7 +142,12 @@ class GameEvaluator:
         return res
     
     def is_threefold_repition(self):
-        pass
+        res = {"threefold_repition": False, "fen": ""}
+        if self.board.fen_counter.most_common(1)[0][1] >= 3:
+            res["threefold_repition"] = True
+            res["fen"] = self.board.fen_counter.most_common(1)[0][0]
+        return res
+
 
 class PieceEvaluator:
     def __init__(self, piece: ChessPiece, position: tuple[int, int], board: Board):
@@ -180,11 +184,15 @@ class PieceEvaluator:
         original_piece = self.board[end_pos]
         self.board.board[end_pos] = self.piece
         self.board.board[self.position] = EMPTY
+        if self.piece == PAWN and self.board.en_passant_square != "-" and end_pos == board_to_coord(self.board.en_passant_square):
+            self.board.board[(self.position[0], end_pos[1])] = EMPTY
         return original_piece
     
     def undo_move(self, original_piece: ChessPiece, end_pos: tuple[int, int]) -> None:
         self.board.board[self.position] = self.piece
         self.board.board[end_pos] = original_piece
+        if self.piece == PAWN and self.board.en_passant_square != "-" and end_pos == board_to_coord(self.board.en_passant_square):
+            self.board.board[(self.position[0], end_pos[1])] = Pawn(1 - self.piece.color)
     
     def is_valid(self, end_pos: tuple[int, int]) -> dict[str, any]:
         res = {"info": f"{self.piece}({self.position} -> {end_pos})", "reason": ""}
@@ -206,7 +214,7 @@ class PieceEvaluator:
         res["valid"] = True
         return res
     
-class King(PieceEvaluator):
+class KingEvaluator(PieceEvaluator):
     def __init__(self, piece: ChessPiece, position: tuple[int, int], board: Board):
         super().__init__(piece, position, board)
 
@@ -270,7 +278,7 @@ class King(PieceEvaluator):
         res["valid"] = True
         return res
 
-class Pawn(PieceEvaluator):
+class PawnEvaluator(PieceEvaluator):
     def __init__(self, piece: ChessPiece, position: tuple[int, int], board: Board):
         super().__init__(piece, position, board)
 
@@ -293,7 +301,7 @@ class Pawn(PieceEvaluator):
                 return res
         
         if abs(self.position[0] - end_pos[0]) == 1 and abs(self.position[1] - end_pos[1]) == 1:
-            if self.board[end_pos] == EMPTY and self.board.en_passant_square != "-" and end_pos != board_to_coord(self.board.en_passant_square):
+            if self.board[end_pos] == EMPTY and (self.board.en_passant_square == "-" or end_pos != board_to_coord(self.board.en_passant_square)):
                 res["capable"] = False
                 res["reason"] = f"Pawn ({self.piece}) at position {self.position} cannot capture at end position {end_pos} because it is empty ({self.board[end_pos]})."
                 return res
@@ -324,6 +332,10 @@ class Pawn(PieceEvaluator):
             return res
         
         if abs(self.position[0] - end_pos[0]) == 1 and abs(self.position[1] - end_pos[1]) == 1:
+            if self.board[end_pos] == EMPTY and (self.board.en_passant_square == "-" or end_pos != board_to_coord(self.board.en_passant_square)):
+                res["valid"] = False
+                res["reason"] = f"Pawn ({self.piece}) at position {self.position} cannot capture at end position {end_pos} because it is empty ({self.board[end_pos]})."
+                return res
             original_piece = self.try_move(end_pos)
             attacker_pos = self.game_eval.in_check()
             if attacker_pos:

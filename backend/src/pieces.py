@@ -1,370 +1,193 @@
-import numpy as np # type: ignore
+import numpy as np
 
-from piece_info import *
+from itertools import product
+
+from piece_info import Color, PieceType, PIECE_STR, EMPTY, ROOK, BISHOP, \
+                       QUEEN, KNIGHT, PAWN, KING, NONE, WHITE, BLACK
 
 class ChessPiece:
-    def __init__(self, color: Color, type: PieceType):
+    def __init__(self, color: Color, type: PieceType, can_castle: bool = None) -> None:
         self.color = color
         self.type = type
+        self.can_castle = can_castle
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         match other:
-            case PieceType():
-                return self.type == other
+            case ChessPiece():
+                return self.color == other.color and self.type == other.type and self.can_castle == other.can_castle
             case Color():
                 return self.color == other
-            case ChessPiece():
-                return self.type == other.type and self.color == other.color
+            case int():
+                return self.color == other
+            case PieceType():
+                return self.type == other
             case bad:
-                raise Exception(f"Error: Testing equality against incompatible type {bad}.")
-
-    def __ne__(self, other):
-        return self.type != other
-
-    def __str__(self):
-        return PIECE_STR[self.type][self.color.value]
+                raise TypeError(f"Error: Testing equality against incompatible type {bad}.")
     
-    def out_of_bounds(self, position: Tuple[int, int]):
+    def __ne__(self, other) -> bool:
+        match other:
+            case ChessPiece():
+                return self.color != other.color or self.type != other.type
+            case Color():
+                return self.color != other
+            case int():
+                return self.color != other
+            case PieceType():
+                return self.type != other
+            case bad:
+                raise TypeError(f"Error: Testing inequality against incompatible type {bad}.")
+            
+    def __repr__(self) -> str:
+        return PIECE_STR[self.type][self.color]
+    
+    @staticmethod
+    def out_of_bounds(position: tuple[int, int]) -> bool:
         return position[0] < 0 or position[0] > 7 or position[1] < 0 or position[1] > 7
+
+    def can_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        return False
+
+    def moves(self, position: tuple[int, int]) -> list[tuple[int, int]]:
+        return []
+    
+    def line_of_sight(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        return []
     
 class Empty(ChessPiece):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(NONE, EMPTY)
-
-    def is_valid_move(self, start_pos, end_pos, board):
-        return False
-    
-    def get_line_of_sight(self, start_pos, end_pos, board):
-        return []
-    
-    def get_valid_moves(self, start_pos, board):
-        return []
     
 class Rook(ChessPiece):
-    def __init__(self, color):
-        super().__init__(color, ROOK)
-        self.can_castle = True
+    def __init__(self, color, can_castle=False) -> None:
+        super().__init__(color, ROOK, can_castle)
+        self.can_castle = can_castle
 
-    def is_valid_move(self, start_pos, end_pos, board):
-        # Check out of bounds
-        if super().out_of_bounds(start_pos) or super().out_of_bounds(end_pos):
-            # print("Out of bounds.")
+    def can_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        if self.out_of_bounds(start_pos) or self.out_of_bounds(end_pos):
             return False
-        
-        # If both or neither change, invalid
-        if (start_pos[0] == end_pos[0]) == (start_pos[1] == end_pos[1]):
-            # print("Move is not horizontal or vertical.")
-            return False
-        
-        # Check if end position is a friendly piece
-        if board.board[end_pos].color == self.color:
-            # print(f"Rook is trying to capture its own {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
-            return False
-        
-        # Check if the path is blocked
-        axis = start_pos[0] == end_pos[0]
-        if start_pos[0] == end_pos[0]:
-            for i in range(min(start_pos[1], end_pos[1]) + 1, max(start_pos[1], end_pos[1])):
-                if board.board[start_pos[0]][i] != EMPTY:
-                    # print(f"Invalid: Path is blocked by {str(board.board[start_pos[0]][i])} at {str((start_pos[0], i))}.")
-                    return False
-        else:
-            for i in range(min(start_pos[0], end_pos[0]) + 1, max(start_pos[0], end_pos[0])):
-                if board.board[i][start_pos[1]] != EMPTY:
-                    # print(f"Path is blocked by {str(board.board[i][start_pos[1]])} at {str((i, start_pos[1]))}.")
-                    return False
-        return True
+        return (start_pos[0] == end_pos[0]) != (start_pos[1] == end_pos[1])
     
-    def get_line_of_sight(self, start_pos, end_pos, board):
-        if self.is_valid_move(start_pos, end_pos, board):
-            axis = start_pos[0] == end_pos[0]
-            dir = 1 if end_pos[axis] > start_pos[axis] else -1
-            print(start_pos, end_pos, range(start_pos[axis]+dir, end_pos[axis], dir))
-            return [(axis*start_pos[0] + (1-axis)*dir*i, (1-axis)*start_pos[1] + axis*dir*i) for i in range(start_pos[axis]+dir, end_pos[axis], dir)]
-        return []
+    def moves(self, start_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        return [(start_pos[0], i) for i in range(8) if i != start_pos[1]] + \
+               [(i, start_pos[1]) for i in range(8) if i != start_pos[0]]
     
-    def get_valid_moves(self, start_pos, board):
-        moves = []
-        for axis in [0, 1]:
-            for dir in [-1, 1]:
-                end_pos = (start_pos[0] + (1-axis)*dir, start_pos[1] + axis*dir)
-                while not super().out_of_bounds(end_pos) and board.board[end_pos].color != self.color:
-                    board.check_for_check(start_pos, end_pos, moves)
-                    if board.board[end_pos].color == 1-self.color:
-                        break
-                    end_pos = (end_pos[0] + (1-axis)*dir, end_pos[1] + axis*dir)
-        return moves
+    def line_of_sight(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        if not self.can_move(start_pos, end_pos):
+            return []
+        return [(start_pos[0], i) for i in range(min(start_pos[1], end_pos[1]) + 1, max(start_pos[1], end_pos[1]))] if start_pos[0] == end_pos[0] else \
+                [(i, start_pos[1]) for i in range(min(start_pos[0], end_pos[0]) + 1, max(start_pos[0], end_pos[0]))]
     
 class Bishop(ChessPiece):
-    def __init__(self, color):
+    def __init__(self, color) -> None:
         super().__init__(color, BISHOP)
 
-    def is_valid_move(self, start_pos, end_pos, board):
-        # Check out of bounds
-        if super().out_of_bounds(start_pos) or super().out_of_bounds(end_pos):
-            # print("Out of bounds.")
+    def can_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        if self.out_of_bounds(start_pos) or self.out_of_bounds(end_pos):
             return False
-        
-        # If abs(direction changes) are not the same or neither change, invalid
-        if abs(end_pos[0] - start_pos[0]) != abs(end_pos[1] - start_pos[1]) or abs(end_pos[0] - start_pos[0]) == 0:
-            # print("Move is not diagonal.")
-            return False
-        
-        # Check if end position is a friendly piece
-        if board.board[end_pos].color == self.color:
-            # print(f"Bishop is trying to capture its own {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
-            return False
-        
-        # Check if the path is blocked
-        up = end_pos[0] > start_pos[0]
-        right = end_pos[1] > start_pos[1]
-
-        for i in range(1, (start_pos[0] - end_pos[0])*(-1)**up):
-            if board.board[start_pos[0] - i*(-1)**up][start_pos[1] - i*(-1)**right] != EMPTY:
-                # print(f"Path is blocked by {board.board[start_pos[0] - i*(-1)**up][start_pos[1] - i*(-1)**right]} at {coord_to_board((start_pos[0] - i*(-1)**up, start_pos[1] - i*(-1)**right))}")
-                return False
-        
-        return True
+        return abs(start_pos[0] - end_pos[0]) == abs(start_pos[1] - end_pos[1]) and start_pos != end_pos
     
-    def get_line_of_sight(self, start_pos, end_pos, board):
-        if self.is_valid_move(start_pos, end_pos, board):
-            up = end_pos[0] > start_pos[0]
-            right = end_pos[1] > start_pos[1]
-            return [(start_pos[0] - i*(-1)**up, start_pos[1] - i*(-1)**right) for i in range(1, (start_pos[0] - end_pos[0])*(-1)**up)]
-
-    def get_valid_moves(self, start_pos, board):
-        moves = []
-        for y in [-1, 1]:
-            for x in [-1, 1]:
-                end_pos = (start_pos[0] + y, start_pos[1] + x)
-                while not super().out_of_bounds(end_pos) and board.board[end_pos].color != self.color:
-                    board.check_for_check(start_pos, end_pos, moves)
-                    if board.board[end_pos].color == 1-self.color:
-                        break
-                    end_pos = (end_pos[0] + y, end_pos[1] + x)
-        return moves
-
+    def moves(self, start_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        # minor diagonal, major diagonal
+        return [(start_pos[0] + i, start_pos[1] + i) for i in range(0 - min(start_pos), 7 - max(start_pos) + 1) if i != 0] + \
+               [(start_pos[0] - i, start_pos[1] + i) for i in range(-min(7 - start_pos[0], start_pos[1]), min(start_pos[0], 7 - start_pos[1]) + 1) if i != 0]
+    
+    def line_of_sight(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        if not self.can_move(start_pos, end_pos):
+            return []
+        up = 1 if end_pos[0] > start_pos[0] else -1
+        right = 1 if end_pos[1] > start_pos[1] else -1
+        return [(start_pos[0] + i, start_pos[1] + j) for (i, j) in \
+                zip(range(up, end_pos[0] - start_pos[0], up), range(right, end_pos[1] - start_pos[1], right))]
+    
 class Queen(ChessPiece):
-    def __init__(self, color):
+    def __init__(self, color) -> None:
         super().__init__(color, QUEEN)
 
-    def is_valid_move(self, start_pos, end_pos, board):
-        # Check queen moves through rook and bishop
-        return Rook(self.color).is_valid_move(start_pos, end_pos, board) or Bishop(self.color).is_valid_move(start_pos, end_pos, board)
+    def can_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        if self.out_of_bounds(start_pos) or self.out_of_bounds(end_pos):
+            return False
+        return Rook(self.color).can_move(start_pos, end_pos) or \
+             Bishop(self.color).can_move(start_pos, end_pos)
     
-    def get_line_of_sight(self, start_pos, end_pos, board):
-        if start_pos[0] == end_pos[0] or start_pos[1] == end_pos[1]:
-            return Rook(self.color).get_line_of_sight(start_pos, end_pos, board)
-        return Bishop(self.color).get_line_of_sight(start_pos, end_pos, board)
+    def moves(self, start_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        return Rook(self.color).moves(start_pos) + \
+             Bishop(self.color).moves(start_pos)
+    
+    def line_of_sight(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        if not self.can_move(start_pos, end_pos):
+            raise ValueError(f"Queen at {start_pos} cannot move to {end_pos}.")
+        return Bishop(self.color).line_of_sight(start_pos, end_pos) + \
+            Rook(self.color).line_of_sight(start_pos, end_pos)
+             
 
-    def get_valid_moves(self, start_pos, board):
-        return Rook(self.color).get_valid_moves(start_pos, board) + Bishop(self.color).get_valid_moves(start_pos, board)
-    
 class Knight(ChessPiece):
-    def __init__(self, color):
+    def __init__(self, color) -> None:
         super().__init__(color, KNIGHT)
 
-    def is_valid_move(self, start_pos, end_pos, board):
-        # Check out of bounds
-        if super().out_of_bounds(start_pos) or super().out_of_bounds(end_pos):
-            # print("Out of bounds.")
+    def can_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        if self.out_of_bounds(start_pos) or self.out_of_bounds(end_pos):
             return False
-        
-        # Check if end position is a friendly piece
-        if board.board[end_pos].color == self.color:
-            # print(f"Knight is trying to capture its own {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
-            return False
-
-        # Check if not L-shaped
-        if not ((abs(end_pos[0] - start_pos[0]) == 2 and abs(end_pos[1] - start_pos[1]) == 1) or \
-            (abs(end_pos[0] - start_pos[0]) == 1 and abs(end_pos[1] - start_pos[1]) == 2)):
-            # print("Move is not L-shaped.")
-            return False
-        
-        return True
-
-    def get_line_of_sight(self, start_pos, end_pos, board):
-        return []
-        
-    def get_valid_moves(self, start_pos, board):
-        moves = []
-        for y in [-1, 1]:
-            for x in [-1, 1]:
-                for dom in [1, 2]:
-                    end_pos = (start_pos[0] + y*dom, start_pos[1] + x*(3-dom))
-                    if not super().out_of_bounds(end_pos) and board.board[end_pos].color != self.color:
-                        board.check_for_check(start_pos, end_pos, moves)
-        return moves
+        return (abs(start_pos[0] - end_pos[0]) == 2 and abs(start_pos[1] - end_pos[1]) == 1) or \
+               (abs(start_pos[0] - end_pos[0]) == 1 and abs(start_pos[1] - end_pos[1]) == 2)
+    
+    def moves(self, start_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        return [(start_pos[0] + i*k, start_pos[1] + j*(3-k)) for (i, j, k) in product([-1, 1], [-1, 1], [1, 2]) \
+                if not self.out_of_bounds((start_pos[0] + i*k, start_pos[1] + j*(3-k)))]
 
 class Pawn(ChessPiece):
-    def __init__(self, color):
+    def __init__(self, color) -> None:
         super().__init__(color, PAWN)
-        self.en_passantable = False
 
-    def promotion(self):
-        return [Queen(self.color), Rook(self.color), Bishop(self.color), Knight(self.color)][np.random.randint(0, 4)]
-        # piece = input("Enter the piece to which your pawn promotes (Q, R, B, N, enter to escape): ").lower()
-        # if piece == "queen" or piece == "q":
-        #     return Queen(self.color)
-        # elif piece == "rook" or piece == "r":
-        #     return Rook(self.color)
-        # elif piece == "bishop" or piece == "b":
-        #     return Bishop(self.color)
-        # elif piece == "knight" or piece == "n":
-        #     return Knight(self.color)
-        # else:
-        #     # print("Invalid piece.")
-        #     return False
-
-    def is_valid_move(self, start_pos, end_pos, board):
-        # Check out of bounds
-        if super().out_of_bounds(start_pos) or super().out_of_bounds(end_pos):
-            # print("Out of bounds.")
+    def can_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        if self.out_of_bounds(start_pos) or self.out_of_bounds(end_pos):
             return False
         
-        if not ((end_pos[0] - start_pos[0] == 1*(-1)**self.color and end_pos[1] == start_pos[1]) or \
-                end_pos[0] - start_pos[0] == 2*(-1)**self.color and end_pos[1] == start_pos[1] or \
-                end_pos[0] - start_pos[0] == 1*(-1)**self.color and abs(end_pos[1] - start_pos[1]) == 1):
-            # print("Pawn is trying to make an unrecognized move.")
-            return False
-        
-        # 1 step vertical
-        if end_pos[0] - start_pos[0] == 1*(-1)**self.color and end_pos[1] == start_pos[1]:
-            if board.board[end_pos[0]][end_pos[1]] != EMPTY:
-                # print("Pawn is trying to move forward one step but is blocked.")
-                return False
-        # print("Pawn is moving forward one step and is not blocked.")
-        # 2 step vertical
-        elif end_pos[0] - start_pos[0] == 2*(-1)**self.color and end_pos[1] == start_pos[1]:
-            if start_pos[0] != 1*(-1)**self.color % (len(board.board) - 1):
-                # print("Pawn is trying to move forward two steps but has already moved.")
-                return False
-            elif board.board[end_pos] != EMPTY:
-                # print(f"Pawn is trying to move forward two steps but is blocked by {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
-                return False
-            elif board.board[end_pos[0] - 1*(-1)**self.color][end_pos[1]] != EMPTY:
-                # print(f"Pawn is trying to move forward two steps but is blocked by {str(board.board[end_pos[0] - 1*(-1)**self.color][end_pos[1]])} at {str((end_pos[0] - 1*(-1)**self.color, end_pos[1]))}.")
-                return False
-            else:
-                # print("Pawn moves forward two steps and is not blocked.")
-                self.en_passantable = True  
+        return (end_pos[0] - start_pos[0] == (-1)**self.color and end_pos[1] == start_pos[1]) or \
+               (end_pos[0] - start_pos[0] == 2*(-1)**self.color and end_pos[1] == start_pos[1] and start_pos[0] == 1 + 5*self.color) or \
+               (end_pos[0] - start_pos[0] == (-1)**self.color and abs(end_pos[1] - start_pos[1]) == 1)
 
-        # Capture
-        elif end_pos[0] - start_pos[0] == 1*(-1)**self.color and abs(end_pos[1] - start_pos[1]) == 1:
-            if board.board[end_pos] == EMPTY and board.board[start_pos[0]][end_pos[1]] == PAWN and board.board[start_pos[0]][end_pos[1]].en_passantable:
-                # print(f"Pawn moves diagonally one step and en passants {str(board.board[start_pos[0]][end_pos[1]])} at {str((start_pos[0], end_pos[1]))}.")
-                board.board[start_pos[0]][end_pos[1]] = Empty()
-                return True
-            elif board.board[end_pos] == EMPTY:
-                # print("Pawn is trying to move diagonally one step but is not capturing.")
-                return False
-            elif board.board[end_pos].color == self.color:
-                # print(f"Pawn is trying to move diagonally one step but is trying to capture its own {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
-                return False
-        return True
+    def moves(self, start_pos: tuple[int, int]) -> list[tuple[int, int]] | list[tuple[int, int, str]]:
+        if start_pos[0] + (-1)**self.color == 7*(1 - self.color):
+            return [(start_pos[0] + (-1)**self.color, start_pos[1], p) for p in ["q", "r", "b", "n"]]
+        return [(start_pos[0] + (-1)**self.color, start_pos[1])] + \
+               ([(start_pos[0] + 2*(-1)**self.color, start_pos[1])] if start_pos[0] == 1 + 5*self.color  else []) + \
+               self.attack_options(start_pos)
     
-    def get_line_of_sight(self, start_pos, end_pos, board):
-        return []
-    
-    def get_valid_moves(self, start_pos, board):
-        moves = []
-        on_start = start_pos[0] == 1*(-1)**self.color % (len(board.board) - 1)
-        # captures
-        for x in [-1, 1]:
-            end_pos = (start_pos[0] + 1*(-1)**self.color, start_pos[1] + x)
-            if not super().out_of_bounds(end_pos) and board.board[end_pos].color == 1 - self.color:
-                board.check_for_check(start_pos, end_pos, moves)
-        # forward
-        end_pos = (start_pos[0] + 1*(-1)**self.color, start_pos[1])
-        if not super().out_of_bounds(end_pos) and board.board[end_pos].color == NONE:
-            board.check_for_check(start_pos, end_pos, moves)
-            if on_start:
-                end_pos = (start_pos[0] + 2*(-1)**self.color, start_pos[1])
-                if board.board[end_pos] == EMPTY:
-                    board.check_for_check(start_pos, end_pos, moves)
-        return moves
+    def attack_options(self, start_pos: tuple[int, int]) -> list[tuple[int, int]] | list[tuple[int, int, str]]:
+        if start_pos[0] + (-1)**self.color == 7*(1 - self.color):
+            return [(start_pos[0] + (-1)**self.color, start_pos[1] + i, p) for p in ["q", "r", "b", "n"] for i in [-1, 1] \
+                if not self.out_of_bounds((start_pos[0] + (-1)**self.color, start_pos[1] + i))]
+        return [(start_pos[0] + (-1)**self.color, start_pos[1] + i) for i in [-1, 1] \
+                if not self.out_of_bounds((start_pos[0] + (-1)**self.color, start_pos[1] + i))]
 
 class King(ChessPiece):
-    def __init__(self, color):
-        super().__init__(color, KING)
-        self.can_castle = True
+    def __init__(self, color, can_castle=False) -> None:
+        super().__init__(color, KING, can_castle)
+        self.can_castle = can_castle
 
-    def is_valid_move(self, start_pos, end_pos, board):
-        # Check out of bounds
-        if super().out_of_bounds(start_pos) or super().out_of_bounds(end_pos):
-            # print("Out of bounds.")
+    def can_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        if self.out_of_bounds(start_pos) or self.out_of_bounds(end_pos):
             return False
         
-        # Check if castling
-        if self.can_castle and start_pos[0] == end_pos[0] and abs(end_pos[1] - start_pos[1]) == 2:
-            # print("King is castling.")
-            return True
-        
-        if board.board[end_pos].color == self.color:
-            # print(f"King is trying to capture its own {str(board.board[end_pos[0]][end_pos[1]])} at {str(end_pos)}.")
-            return False
-        
-        if (abs(end_pos[0] - start_pos[0]) > 1 or abs(end_pos[1] - start_pos[1]) > 1) and \
-            not (self.can_castle and start_pos[0] == end_pos[0] and abs(end_pos[1] - start_pos[1]) == 2):
-            # print("King is trying to move more than one step.")
-            return False
-        
-        if end_pos[0] == start_pos[0] and end_pos[1] == start_pos[1]:
-            # print("King is trying to move to the same position.")
-            return False
-        return True
+        # moving one, castling
+        return abs(start_pos[0] - end_pos[0]) <= 1 and abs(start_pos[1] - end_pos[1]) <= 1 and not (start_pos[0] == end_pos[0] and start_pos[1] == end_pos[1]) or \
+                start_pos == (7*self.color, 3) and self.can_castle and abs(start_pos[1] - end_pos[1]) == 2 and start_pos[0] == end_pos[0]
+
+    def moves(self, start_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        return [(start_pos[0] + i, start_pos[1] + j) for i in [-1, 0, 1] for j in [-1, 0, 1] \
+                if not self.out_of_bounds((start_pos[0] + i, start_pos[1] + j)) and not (i == 0 and j == 0)] + \
+                self.castling_options(start_pos)
     
-    def is_valid_castle(self, start_pos, end_pos, board):
-        if board.check(start_pos):
-            # print("Cannot castle: King is in check.")
-            return False
-        if start_pos[0] != 7*self.color or start_pos[1] != 3:
-            # print(f"Cannot castle: King not in starting square at {coord_to_board((7*self.color, 4))}.")
-            return False
-        if not self.can_castle:
-            # print(f"Cannot castle: At some point king has moved from {coord_to_board((7*self.color, 4))}.")
-            return False
-        if end_pos[0] != start_pos[0] or abs(end_pos[1] - start_pos[1]) != 2:
-            # print("Cannot castle: King is not moving two squares.")
-            return False
-        
-        king_side = end_pos[1] < start_pos[1]
-        rook_pos = (start_pos[0], 7*king_side)
-        rook = board.board[rook_pos]
-        if rook != ROOK:
-            # print(f"Cannot castle: No rook found at {coord_to_board(rook_pos)}.")
-            return False
-        if not rook.can_castle:
-            # print(f"Cannot castle: At some point rook has moved from {coord_to_board(rook_pos)}.")
-            return False
-        
-        if board.board[start_pos[0]][start_pos[1] + 1*(-1)**(king_side)] != EMPTY or \
-            board.board[start_pos[0]][start_pos[1] + 2*(-1)**(king_side)] != EMPTY or \
-            (not king_side and board.board[start_pos[0]][start_pos[1] + 3*(-1)**(king_side)] != EMPTY):
-            # print("Cannot castle: Path is not clear.")
-            return False
-        
-        if board.check((start_pos[0], start_pos[1] + 1*(-1)**king_side)) or board.check(end_pos):
-            # print("Cannot castle: Moving through or into check.")
-            return False
-        
-        # print(f"{self.color} can castle {['queen', 'king'][king_side]} side.")
-        return True
-    
-    def get_line_of_sight(self, start_pos, end_pos, board):
-        return []
-    
-    def get_valid_moves(self, start_pos, board):
-        moves = []
-        for x in [-1, 0, 1]:
-            for y in [-1, 0, 1]:
-                if x == 0 and y == 0:
-                    continue
-                end_pos = (start_pos[0] + y, start_pos[1] + x)
-                if not super().out_of_bounds(end_pos) and board.board[end_pos].color != self.color:
-                    board.check_for_check(start_pos, end_pos, moves)
-        for dir in [-2, 2]:
-            end_pos = (start_pos[0], start_pos[1] + dir)
-            if self.is_valid_castle(start_pos, end_pos, board):
-                moves.append((start_pos, end_pos))
-        return moves
+    def castling_options(self, start_pos: tuple[int, int]) -> list[tuple[int, int]]:
+        if start_pos != (7*self.color, 3):
+            return []
+        return [(start_pos[0], start_pos[1] + 2*i) for i in [-1, 1]] if self.can_castle else []
+
+FEN_MAP: dict[str, ChessPiece] = {
+    "p": Pawn,
+    "r": Rook,
+    "b": Bishop,
+    "q": Queen,
+    "k": King,
+    "n": Knight,
+}

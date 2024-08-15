@@ -7,30 +7,79 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'
 from piece_info import EMPTY, PAWN, ROOK, BISHOP, QUEEN, KING, KNIGHT, NONE, WHITE, BLACK, board_to_coord, coord_to_board
 
 class TestPieceInfo(unittest.TestCase):
-    def test_piece_type(self):
-        self.assertEqual(str(EMPTY), "EMPTY")
-        self.assertEqual(str(PAWN), "PAWN")
-        self.assertEqual(str(ROOK), "ROOK")
-        self.assertEqual(str(KNIGHT), "KNIGHT")
-        self.assertEqual(str(BISHOP), "BISHOP")
-        self.assertEqual(str(QUEEN), "QUEEN")
-        self.assertEqual(str(KING), "KING")
+    def test_piece_type_str(self):
+        # Assert
+        self.assertEqual(str(EMPTY), "Empty")
+        self.assertEqual(str(PAWN), "Pawn")
+        self.assertEqual(str(ROOK), "Rook")
+        self.assertEqual(str(KNIGHT), "Knight")
+        self.assertEqual(str(BISHOP), "Bishop")
+        self.assertEqual(str(QUEEN), "Queen")
+        self.assertEqual(str(KING), "King")
 
-    def test_color(self):
+    def test_color_str(self):
+        # Assert
         self.assertEqual(str(NONE), "NONE")
         self.assertEqual(str(WHITE), "WHITE")
         self.assertEqual(str(BLACK), "BLACK")
+
+    def test_color_int(self):
+        # Assert
         self.assertEqual(int(NONE), -1)
         self.assertEqual(int(WHITE), 0)
         self.assertEqual(int(BLACK), 1)
+
+    def test_color_eq(self):
+        # Assert
+        self.assertEqual(WHITE == BLACK, False)
+        self.assertEqual(WHITE == 0, True)
+        self.assertEqual(WHITE == 1, False)
+        self.assertEqual(BLACK == 0, False)
+        self.assertEqual(BLACK == 1, True)
+
+    def test_color_ne(self):
+        # Assert
+        self.assertEqual(WHITE != BLACK, True)
+        self.assertEqual(WHITE != 0, False)
+        self.assertEqual(WHITE != 1, True)
+        self.assertEqual(BLACK != 0, True)
+        self.assertEqual(BLACK != 1, False)
+
+    def test_color_index(self):
+        # Arrange
+        arr = [WHITE, BLACK]
+
+        # Assert
+        self.assertEqual(arr[WHITE], WHITE)
+        self.assertEqual(arr[BLACK], BLACK)
+
+    def test_color_sub(self):
+        # Assert
+        self.assertEqual(WHITE - 1, -1)
+        self.assertEqual(BLACK - 1, 0)
+
+    def test_color_rsub(self):
+        # Assert
         self.assertEqual(1 - WHITE, BLACK)
         self.assertEqual(1 - BLACK, WHITE)
+
+    def test_color_mul(self):
+        # Assert
+        self.assertEqual(WHITE * 1, 0)
+        self.assertEqual(BLACK * 1, 1)
+
+    def test_color_rmul(self):
+        # Assert
+        self.assertEqual(1 * WHITE, 0)
+        self.assertEqual(1 * BLACK, 1)
+
+    def test_color_rpow(self):
+        # Assert
         self.assertEqual((-1) ** WHITE, 1)
         self.assertEqual((-1) ** BLACK, -1)
-        self.assertEqual(WHITE == BLACK, False)
-        self.assertEqual(WHITE != BLACK, True)
 
     def test_board_to_coord(self):
+        # Assert
         self.assertEqual(board_to_coord("A1"), (0, 7))
         self.assertEqual(board_to_coord("A2"), (1, 7))
         self.assertEqual(board_to_coord("A3"), (2, 7))
@@ -48,6 +97,7 @@ class TestPieceInfo(unittest.TestCase):
         self.assertEqual(board_to_coord("H1"), (0, 0))
 
     def test_coord_to_board(self):
+        # Assert
         self.assertEqual(coord_to_board((0, 7)), "A1")
         self.assertEqual(coord_to_board((1, 7)), "A2")
         self.assertEqual(coord_to_board((2, 7)), "A3")
@@ -63,6 +113,3 @@ class TestPieceInfo(unittest.TestCase):
         self.assertEqual(coord_to_board((0, 2)), "F1")
         self.assertEqual(coord_to_board((0, 1)), "G1")
         self.assertEqual(coord_to_board((0, 0)), "H1")
-
-if __name__ == "__main__":
-    unittest.main()
