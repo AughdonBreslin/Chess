@@ -1,0 +1,77 @@
+{% extends "template.html" %}
+{% block header %}
+<header class="mb-6 no-print">
+  <nav class="flex justify-between">
+    <ul class="flex flex-row">
+      <li class="pr-5">
+        <a aria-current="page" class="" href="/">
+            <p class="flex hover:underline text-gray-900 dark:text-gray-300 font-bold text-4xl tk-neue-haas-grotesk-display uppercase">
+              Chess<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 300.000000 300.000000" preserveAspectRatio="xMidYMid meet">
+                <g transform="translate(0.000000,275.000000) scale(0.100000,-0.100000)" fill="white" stroke="none">
+                  <path d="M1302 2310 c-18 -4 -35 -10 -38 -12 -2 -3 1 -27 8 -53 l13 -47 -39 -31 c-27 -22 -51 -57 -81 -121 -23 -50 -69 -127 -102 -171 -71 -95 -105 -158 -97 -179 9 -25 68 -56 105 -56 23 0 46 11 78 38 38 32 58 41 119 50 73 12 135 37 181 73 13 11 30 19 37 19 24 0 16 -68 -16 -135 -37 -77 -78 -130 -207 -268 -56 -58 -113 -131 -131 -164 -28 -54 -62 -157 -62 -190 0 -10 86 -13 433 -13 l432 0 1 143 c0 117 5 163 28 262 35 155 43 304 22 405 -48 227 -217 398 -441 445 -75 16 -189 18 -243 5z"/>
+                  <path d="M1030 993 c-32 -12 -50 -37 -50 -70 l0 -33 520 0 520 0 0 33 c0 22 -8 41 -21 53 -20 18 -44 19 -488 21 -256 1 -473 -1 -481 -4z"/>
+                  <path d="M909 827 c-37 -28 -53 -109 -27 -135 17 -17 1219 -17 1236 0 24 24 8 108 -26 134 -24 19 -1159 20 -1183 1z"/>
+                </g>
+                </svg>
+            </p>
+            <p class="sr-only">
+              Homepage
+            </p>
+          </a>
+      </li>
+      <li class="pr-5">
+          <a class="" href="/play">
+            <p class="mt-1 hover:underline">
+              Play
+            </p>
+          </a>
+      </li>
+      <li class="pr-5">
+          <a class="" href="/games">
+            <p class="mt-1 hover:underline">
+              History
+            </p>
+          </a>
+      </li>
+      <li class="pr-5 text-gray-600 dark:text-gray-400">
+        <a class="inline-block mt-1 hover:underline" href="https://www.paypal.com/paypalme/AughdonBreslin?country.x=US&locale.x=en_US">
+          Donate
+        </a>
+      </li>
+      <li class="pr-5  text-gray-600 dark:text-gray-400">
+        <a class="inline-block mt-1 hover:underline" href="https://github.com/AughdonBreslin/Chess">
+          GitHub
+        </a>
+      </li>
+      <li class="pr-5">
+        <a class="" href="/accounts">
+          <p class="mt-1 hover:underline">
+            Account
+          </p>
+        </a>
+    </li>
+    </ul>
+  </nav>
+</header>
+{% endblock %}
+
+{% block main %}
+<main>
+    {% block content %}
+    {% endblock %}
+</main>
+{% endblock %}
+
+{% block footer %}
+<footer class="mt-6 dark:border-gray-700 text-gray-600 dark:text-gray-400 no-print">
+    <a rel="me" class="hidden" href="https://fosstodon.org/@ceiphr">
+        Mastodon
+    </a>
+    <p>
+        Aughdon Breslin
+    </p>
+</footer>
+{% endblock %}
+
+
+
