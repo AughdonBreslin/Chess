@@ -48,15 +48,15 @@ class Board:
                          Queen(BLACK), Bishop(BLACK), Knight(BLACK), Rook(BLACK, True)]
 
     def char_to_piece(self, char: str) -> ChessPiece:
-        char = char.lower()
-        if char in FEN_MAP:
-            return FEN_MAP[char.lower()]
+        return FEN_MAP[char.lower()]
 
     def load_fen(self, fen: str) -> None:
         self.clear()
         fen = fen.split()
         board = fen[0].split("/")
 
+        if len(board) != 8:
+            raise ValueError("Invalid FEN string.")
         for i in range(8):
             j = 0
             for char in board[i]:
