@@ -5,7 +5,14 @@ from pieces import np, FEN_MAP, ChessPiece, EMPTY, KING, ROOK, PieceType, Color,
 
 class Board:
     def __init__(self, fen=None) -> None:
-        self.load_fen(fen) if fen else self.setup()
+        if fen:
+            try:
+                self.load_fen(fen)
+            except Exception as e:
+                print(e)
+                self.setup()
+        else:
+            self.setup()
 
     def __getitem__(self, position: tuple[int, int]) -> ChessPiece:
         return self.board[position]
@@ -41,15 +48,15 @@ class Board:
                          Queen(BLACK), Bishop(BLACK), Knight(BLACK), Rook(BLACK, True)]
 
     def char_to_piece(self, char: str) -> ChessPiece:
-        return FEN_MAP[char.lower()]
+        char = char.lower()
+        if char in FEN_MAP:
+            return FEN_MAP[char.lower()]
 
     def load_fen(self, fen: str) -> None:
         self.clear()
         fen = fen.split()
         board = fen[0].split("/")
 
-        if len(board) != 8:
-            raise ValueError("Invalid FEN string.")
         for i in range(8):
             j = 0
             for char in board[i]:
