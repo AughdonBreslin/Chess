@@ -27,7 +27,7 @@ Operator/Controller:
  - gets move from end user
  - parses it to actual move
  - PROBLEM:
-   - how the fuck am i parsing a promotion
+   - how am i parsing a promotion
    - will it be normal and then stall until further input? surely but sucks
    - will it be all encompassing? surely not but faster
    - should i do both? input w mouse vs input with algebraic notation
