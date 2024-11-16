@@ -99,7 +99,6 @@ class GameEvaluator:
                         capturing_moves.append(((i, j), attack_pos))
                     if piece == PAWN and self.board.en_passant_square != "-":
                         validity = self.piece_eval.is_valid(board_to_coord(self.board.en_passant_square))
-                        print(validity)
                         if validity["valid"]:
                             capturing_moves.append(((i, j), board_to_coord(self.board.en_passant_square)))
             for square in attacker.line_of_sight(attack_pos, king_pos):

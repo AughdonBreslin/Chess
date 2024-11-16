@@ -21,8 +21,7 @@ class Chess:
         board = Board(self.fen)
         evaluator = GameEvaluator(board)
         handler = Handler()
-        game_over = evaluator.is_game_over()
-        while not game_over["game_over"]:
+        while not evaluator.is_game_over()["game_over"]:
             print(repr(board) if self.verbose else str(board))
             move = handler.get_move()
             move = handler.parse_move(move)
