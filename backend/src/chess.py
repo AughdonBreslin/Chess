@@ -1,5 +1,6 @@
 import argparse
 
+from piece_info import Color, WHITE
 from board import Board
 from evaluator import GameEvaluator
 from handler import Handler
@@ -21,15 +22,22 @@ class Chess:
         board = Board(self.fen)
         evaluator = GameEvaluator(board)
         handler = Handler()
-        while not evaluator.is_game_over()["game_over"]:
+        game_state = evaluator.is_game_over()
+        while not game_state["game_over"]:
             print(repr(board) if self.verbose else str(board))
             move = handler.get_move()
-            move = handler.parse_move(move)
             validity = evaluator.is_valid(move["start_pos"], move["end_pos"])
             if validity["valid"]:
                 board.move(move["start_pos"], move["end_pos"])
             else:
                 print(validity)
+            game_state = evaluator.is_game_over()
+        print(evaluator.is_game_over() if self.verbose else "")
+        print(repr(board) if self.verbose else str(board))
+        result = evaluator.outcome(game_state)
+        print(result["reason"])
+        return result["point"]
+        
         
 if __name__ == "__main__":
     chess = Chess()

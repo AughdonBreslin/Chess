@@ -1,5 +1,5 @@
 from board import Board
-from piece_info import EMPTY, KING, PAWN, ROOK, board_to_coord
+from piece_info import Color, BLACK, EMPTY, KING, PAWN, ROOK, board_to_coord
 from pieces import ChessPiece, Pawn
 
 class GameEvaluator:
@@ -70,6 +70,20 @@ class GameEvaluator:
         return {"game_over": checkmate["checkmate"] or stalemate["stalemate"] or fifty_move_rule["fifty_move_rule"], 
                 "checkmate": checkmate, "stalemate": stalemate, "fifty_move_rule": fifty_move_rule}
     
+    def outcome(self, game_state: dict[str, int]) -> dict[str, int]:
+        if game_state["checkmate"]["checkmate"]:
+            return {"point": 1 if self.board.current_player == BLACK else 0,
+                    "reason": game_state["checkmate"]["reason"]}
+        if game_state["stalemate"]["stalemate"]:
+            return {"point": 0.5, "reason": game_state["stalemate"]["reason"]}
+        if game_state["fifty_move_rule"]["fifty_move_rule"]:
+            return {"point": 0.5, "reason": game_state["fifty_move_rule"]["reason"]}
+        if game_state["insufficient_material"]["insufficient_material"]:
+            return {"point": 0.5, "reason": game_state["insufficient_material"]["reason"]}
+        if game_state["threefold_repition"]["threefold_repition"]:
+            return {"point": 0.5, "reason": game_state["threefold_repition"]["reason"]}
+        return {"point": -1, "reason": "Game not over."}
+    
     def is_checkmate(self):
         king_pos = self.board.find_piece(KING)
         res = {"checkmate": False, "reason": ""}
@@ -117,10 +131,16 @@ class GameEvaluator:
         res["capturing_moves"] = capturing_moves
         res["blocking_moves"] = blocking_moves
         res["running_moves"] = running_moves
+        res["reason"] = f"{Color(1-self.board.current_player)} wins! King {king} cannot escape attack{'s' if len(attacker_pos)>1 else ''} from {[self.board[attack_pos] for attack_pos in attacker_pos] if len(attacker_pos)>1 else attacker} at position{'s' if len(attacker_pos)>1 else ''} {attacker_pos if len(attacker_pos)>1 else attacker_pos[0]}."
         return res
     
     def is_stalemate(self):
         res = {"stalemate": False}
+        attacker_pos = self.in_check()
+        if attacker_pos:
+            res["reason"] = f"Attacker found at {attacker_pos}."
+            return res
+
         all_valid_moves = []
         for i in range(len(self.board)):
             for j in range(len(self.board[i])):
@@ -356,79 +376,3 @@ class PawnEvaluator(PieceEvaluator):
 
         res["valid"] = True
         return res
-
-if __name__ == "__main__":
-    bob = Board("rnb1kbnr/ppppqppp/5p2/8/8/5P2/PPPP1PPP/RNBQKBNR w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Attacker pos:", game_eval.in_check())
-    print("Valid move:", game_eval.is_valid((0, 4), (1, 3)))
-    print("Valid move:", game_eval.is_valid((0, 2), (1, 3)))
-    print("Invalid move:", game_eval.is_valid((0, 3), (1, 3)))
-    print(bob.board)
-
-    # Castling through pieces
-    bob = Board("rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Valid move:", game_eval.is_valid((0, 3), (0, 1)))
-    print("Invalid move:", game_eval.is_valid((0, 3), (0, 5)))
-        
-    # Castling through check
-    bob = Board("rnbqk2r/pppppppp/8/1b6/4P3/8/PPPP1PPP/RNBQK2R w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Invalid move:", game_eval.is_valid((0, 3), (0, 1)))
-    print("Invalid move:", game_eval.is_valid((0, 3), (0, 5)))
-
-    # Castling into check
-    bob = Board("rnbqk2r/pppppppp/8/2b5/4PP2/8/PPPP2PP/RNBQK2R w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Invalid move:", game_eval.is_valid((0, 3), (0, 1)))
-    print("Invalid move:", game_eval.is_valid((0, 3), (0, 5)))
-
-    # Pawn capture
-    bob = Board("rnbqkbnr/ppp1pppp/8/8/8/3p4/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Valid move:", game_eval.is_valid((1, 3), (2, 4)))
-    print("Invalid move:", game_eval.is_valid((1, 4), (2, 4)))
-    print("Invalid move:", game_eval.is_valid((1, 4), (3, 4)))
-
-    # Pinned pawn capture
-    bob = Board("rnb1kbnr/ppp1pppp/4q3/8/8/3p4/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Invalid move:", game_eval.is_valid((1, 3), (2, 4)))
-
-    # Promotion
-    bob = Board("rnbqkbn1/pppppppP/8/8/8/8/PPPPPPP1/RNBQKBNR w KQq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Invalid move:", game_eval.is_valid((6, 0), (7, 0)))
-    print("Valid move:", game_eval.is_valid((6, 0), (7, 0, "q")))
-    print("Invalid move:", game_eval.is_valid((6, 0), (7, 0, "w")))
-    print("Valid move:", game_eval.is_valid((6, 0), (7, 1, "r")))
-
-    # Checkmate
-    bob = Board("rnb1kbnr/pppppppp/8/8/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Checkmate:", game_eval.is_checkmate())
-    
-    bob = Board("rnb1kbnr/pppppppp/8/2B5/6Pq/5P2/PPPPP2P/RNBQK1NR w KQkq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Not checkmate:", game_eval.is_checkmate())
-
-    # Stalemate
-    bob = Board("rnb1kbnr/pppppppp/8/8/8/6q1/8/7K w kq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Stalemate:", game_eval.is_stalemate())
-
-    bob = Board("rnb1kbnr/pppppppp/8/8/8/P5q1/8/7K w kq - 0 1")
-    game_eval = GameEvaluator(bob)
-    print(bob.board)
-    print("Not stalemate:", game_eval.is_stalemate())

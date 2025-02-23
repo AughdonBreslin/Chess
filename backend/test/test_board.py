@@ -191,7 +191,7 @@ class TestBoard(unittest.TestCase):
         rook = Rook(BLACK, True)
         self.board[7][0] = rook
         move = ((7, 3), (7, 1))
-        
+
         # Act
         self.board.move(move[0], move[1])
 
@@ -210,7 +210,7 @@ class TestBoard(unittest.TestCase):
         rook = Rook(BLACK, True)
         self.board[7][7] = rook
         move = ((7, 3), (7, 5))
-        
+
         # Act
         self.board.move(move[0], move[1])
 
@@ -272,8 +272,3 @@ class TestBoard(unittest.TestCase):
 
         # Assert
         self.assertTrue(pos, [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7)])
-
-
-
-
-    

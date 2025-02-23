@@ -2,7 +2,13 @@ from piece_info import board_to_coord
 
 class Handler:
     def get_move(self) -> str:
-        return input("Enter a move:")
+        move = input("Enter a move:")
+        res = self.parse_move(move)
+        while not res["valid"]:
+            print(res["reason"])
+            move = input("Enter a move:")
+            res = self.parse_move(move)
+        return res
 
     def parse_move(self, move: str) -> dict[str, any]:
         res = {"valid": False, "reason": ""}
