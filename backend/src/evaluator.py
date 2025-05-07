@@ -67,8 +67,9 @@ class GameEvaluator:
         checkmate = self.is_checkmate()
         stalemate = self.is_stalemate()
         fifty_move_rule = self.is_fifty_move_rule()
-        return {"game_over": checkmate["checkmate"] or stalemate["stalemate"] or fifty_move_rule["fifty_move_rule"], 
-                "checkmate": checkmate, "stalemate": stalemate, "fifty_move_rule": fifty_move_rule}
+        threefold_repetition = self.is_threefold_repetition()
+        return {"game_over": checkmate["checkmate"] or stalemate["stalemate"] or fifty_move_rule["fifty_move_rule"] or threefold_repetition["threefold_repetition"], 
+                "checkmate": checkmate, "stalemate": stalemate, "fifty_move_rule": fifty_move_rule, "threefold_repetition": threefold_repetition}
     
     def outcome(self, game_state: dict[str, int]) -> dict[str, int]:
         if game_state["checkmate"]["checkmate"]:
@@ -80,8 +81,8 @@ class GameEvaluator:
             return {"point": 0.5, "reason": game_state["fifty_move_rule"]["reason"]}
         if game_state["insufficient_material"]["insufficient_material"]:
             return {"point": 0.5, "reason": game_state["insufficient_material"]["reason"]}
-        if game_state["threefold_repition"]["threefold_repition"]:
-            return {"point": 0.5, "reason": game_state["threefold_repition"]["reason"]}
+        if game_state["threefold_repetition"]["threefold_repetition"]:
+            return {"point": 0.5, "reason": game_state["threefold_repetition"]["reason"]}
         return {"point": -1, "reason": "Game not over."}
     
     def is_checkmate(self):
@@ -160,10 +161,10 @@ class GameEvaluator:
             res["fifty_move_rule"] = True
         return res
     
-    def is_threefold_repition(self):
-        res = {"threefold_repition": False, "fen": ""}
+    def is_threefold_repetition(self):
+        res = {"threefold_repetition": False, "fen": ""}
         if self.board.fen_counter.most_common(1)[0][1] >= 3:
-            res["threefold_repition"] = True
+            res["threefold_repetition"] = True
             res["fen"] = self.board.fen_counter.most_common(1)[0][0]
         return res
 
