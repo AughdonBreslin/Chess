@@ -198,25 +198,19 @@
 }
 
 /* Piece Animations */
-.chess-piece.moving {
-    animation: movePiece 0.3s ease-in-out;
-}
-
 @keyframes movePiece {
-    0% {
+    from {
         transform: scale(1);
     }
     50% {
-        transform: scale(1.2);
+        transform: scale(1.1);
     }
-    100% {
+    to {
         transform: scale(1);
     }
 }
 
-/* Check Indicator */
 .chess-square.in-check {
-    background-color: #ff6b6b !important;
     animation: checkPulse 1s infinite;
 }
 
