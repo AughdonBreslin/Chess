@@ -106,12 +106,28 @@ function removeFromLocalStorage(key) {
 
 // Theme management
 function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    saveToLocalStorage('theme', theme);
+    if (window.themeManager) {
+        window.themeManager.applyTheme(theme);
+    } else {
+        // Fallback if theme manager is not available
+        document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+            document.body.classList.add('dark-theme');
+            document.body.classList.remove('light-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+            document.body.classList.add('light-theme');
+        }
+    }
 }
 
 function getTheme() {
-    return getFromLocalStorage('theme', 'light');
+    if (window.themeManager) {
+        return window.themeManager.getCurrentTheme();
+    } else {
+        // Fallback if theme manager is not available
+        return document.documentElement.getAttribute('data-theme') || 'light';
+    }
 }
 
 function toggleTheme() {
@@ -122,8 +138,12 @@ function toggleTheme() {
 
 // Initialize theme on page load
 document.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = getTheme();
-    setTheme(savedTheme);
+    // Theme will be initialized by the base template's theme manager
+    // This is just a fallback
+    if (!window.themeManager) {
+        const savedTheme = getTheme();
+        setTheme(savedTheme);
+    }
 });
 
 // Global event listeners

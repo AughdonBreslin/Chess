@@ -206,3 +206,30 @@ class Board:
         res += "Halfmove clock: " + str(self.halfmove_clock) + "\n"
         res += "Move number: " + str(self.move_num) + "\n"
         return res
+
+    def undo_move(self, start_pos: tuple[int, int], end_pos: tuple[int, int], original_piece: ChessPiece) -> None:
+        """Undo a move by restoring the original piece at the destination."""
+        # Store the moved piece before overwriting it
+        moved_piece = self.board[end_pos]
+        
+        # Restore the original piece at the destination
+        self.board[end_pos] = original_piece
+        
+        # Restore the moved piece at the start position
+        self.board[start_pos] = moved_piece
+        
+        # Switch back to the previous player
+        self.current_player = Color(1 - self.current_player)
+        
+        # Decrement move number
+        self.move_num -= 1
+        
+        # Remove the last move from history
+        if self.history:
+            self.history.pop()
+        
+        # Note: This is a simplified undo that doesn't restore all game state
+        # (en passant, castling rights, halfmove clock, etc.)
+        # For the AI minimax, this should be sufficient since we're only
+        # exploring a few moves deep and the evaluation function handles
+        # the current position state

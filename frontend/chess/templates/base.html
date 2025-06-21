@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ current_user.theme_preference if current_user.is_authenticated else 'light' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{{ 'dark-theme' if current_user.is_authenticated and current_user.theme_preference == 'dark' else '' }}">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
@@ -30,6 +30,11 @@
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://www.paypal.com/donate/?business=YCR9QKXWFLLPL&no_recurring=0&currency_code=USD" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-heart"></i> Donate
+                        </a>
+                    </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
@@ -77,6 +82,79 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Global theme management
+        window.themeManager = {
+            currentTheme: '{{ current_user.theme_preference if current_user.is_authenticated else "light" }}',
+            
+            applyTheme: function(theme) {
+                // Set data-theme on <html>
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                // Set class on <body>
+                if (theme === 'dark') {
+                    document.body.classList.add('dark-theme');
+                    document.body.classList.remove('light-theme');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                    document.body.classList.add('light-theme');
+                }
+                
+                // Force a visual refresh by triggering a reflow
+                document.body.offsetHeight;
+                
+                // Update any Bootstrap components that might need refreshing
+                const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(tooltip => {
+                    const bsTooltip = bootstrap.Tooltip.getInstance(tooltip);
+                    if (bsTooltip) {
+                        bsTooltip.dispose();
+                        new bootstrap.Tooltip(tooltip);
+                    }
+                });
+                
+                // Force any dropdowns to close and reopen with new theme
+                const dropdowns = document.querySelectorAll('.dropdown-menu.show');
+                dropdowns.forEach(dropdown => {
+                    const dropdownToggle = dropdown.previousElementSibling;
+                    if (dropdownToggle && dropdownToggle.classList.contains('dropdown-toggle')) {
+                        const bsDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
+                        if (bsDropdown) {
+                            bsDropdown.hide();
+                        }
+                    }
+                });
+                
+                // Store the current theme
+                this.currentTheme = theme;
+            },
+            
+            getCurrentTheme: function() {
+                return this.currentTheme;
+            }
+        };
+        
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentTheme = '{{ current_user.theme_preference if current_user.is_authenticated else "light" }}';
+            
+            // Always apply the theme on page load
+            window.themeManager.applyTheme(currentTheme);
+        });
+        
+        // Ensure theme is properly set when page becomes visible (e.g., when navigating back)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                const currentTheme = '{{ current_user.theme_preference if current_user.is_authenticated else "light" }}';
+                const htmlTheme = document.documentElement.getAttribute('data-theme');
+                
+                // Only update if the theme doesn't match
+                if (htmlTheme !== currentTheme) {
+                    window.themeManager.applyTheme(currentTheme);
+                }
+            }
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html> 

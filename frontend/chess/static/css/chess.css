@@ -1,8 +1,8 @@
 /* Chess Board Styles */
 .chess-board-container {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
+    position: relative;
+    display: inline-block;
+    margin: 0 auto;
 }
 
 .chess-board {
@@ -242,44 +242,116 @@
 /* Time Control Styles */
 .time-display {
     background: #f8f9fa;
-    border: 2px solid #dee2e6;
+    border: 1px solid #dee2e6;
     border-radius: 8px;
     padding: 10px;
-    margin: 5px;
+    margin-bottom: 10px;
 }
 
 .time-label {
-    font-size: 14px;
+    font-size: 0.9em;
     font-weight: bold;
-    color: #495057;
+    color: #6c757d;
     margin-bottom: 5px;
 }
 
 .time-value {
-    font-size: 24px;
+    font-size: 1.5em;
     font-weight: bold;
     font-family: 'Courier New', monospace;
     color: #212529;
 }
 
-.time-value.low-time {
-    color: #dc3545;
+.low-time {
+    color: #fd7e14 !important;
     animation: pulse 1s infinite;
 }
 
-.time-value.critical-time {
-    color: #dc3545;
-    animation: blink 0.5s infinite;
+.critical-time {
+    color: #dc3545 !important;
+    animation: pulse 0.5s infinite;
 }
 
 @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
 }
 
-@keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0; }
-    100% { opacity: 1; }
+/* AI Thinking Overlay */
+.ai-thinking-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 200px;
+    height: auto;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.ai-thinking-content {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    width: 100%;
+}
+
+.ai-thinking-content i {
+    animation: pulse 1.5s infinite;
+    font-size: 1.2em;
+}
+
+/* Dark Theme Styles for Chess Elements */
+[data-theme="dark"] .move-history {
+    background-color: #2d3748;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .move-item {
+    background-color: #4a5568;
+    color: #e2e8f0;
+    border-left-color: #3182ce;
+}
+
+[data-theme="dark"] .game-info {
+    background-color: #2d3748;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .game-info h6 {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .time-display {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .time-label {
+    color: #a0aec0;
+}
+
+[data-theme="dark"] .time-value {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .ai-thinking-overlay {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="dark"] .ai-thinking-content {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    border: 1px solid #4a5568;
 } 

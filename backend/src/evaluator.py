@@ -163,7 +163,7 @@ class GameEvaluator:
     
     def is_threefold_repetition(self):
         res = {"threefold_repetition": False, "fen": ""}
-        if self.board.fen_counter.most_common(1)[0][1] >= 3:
+        if self.board.fen_counter and self.board.fen_counter.most_common(1)[0][1] >= 3:
             res["threefold_repetition"] = True
             res["fen"] = self.board.fen_counter.most_common(1)[0][0]
         return res
