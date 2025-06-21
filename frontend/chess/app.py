@@ -36,6 +36,7 @@ class User(UserMixin, db.Model):
     games_won = db.Column(db.Integer, default=0)
     games_drawn = db.Column(db.Integer, default=0)
     games_lost = db.Column(db.Integer, default=0)
+    elo_rating = db.Column(db.Integer, default=1200)  # Starting ELO rating
 
 class Game(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -128,6 +129,47 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # Get active games for the current user
+    user_games = Game.query.filter(
+        (Game.white_player_id == current_user.id) | 
+        (Game.black_player_id == current_user.id)
+    ).all()
+    
+    # Process each game to determine if it's truly active
+    active_games = []
+    for game in user_games:
+        # Check if game is marked as active in database
+        if game.is_active:
+            # Check the actual game state to see if it's really over
+            try:
+                stored_game_state = json.loads(game.game_state) if game.game_state else {}
+                
+                # Check for resignation
+                is_resigned = stored_game_state.get('resignation', {}).get('resignation', False)
+                
+                # Check for other game-ending conditions
+                is_checkmate = stored_game_state.get('checkmate', {}).get('checkmate', False)
+                is_stalemate = stored_game_state.get('stalemate', {}).get('stalemate', False)
+                is_fifty_move = stored_game_state.get('fifty_move_rule', {}).get('fifty_move_rule', False)
+                is_threefold = stored_game_state.get('threefold_repetition', {}).get('threefold_repetition', False)
+                
+                # Game is truly active if none of the ending conditions are met
+                if not (is_resigned or is_checkmate or is_stalemate or is_fifty_move or is_threefold):
+                    active_games.append(game)
+                else:
+                    # Update the database to reflect that the game is actually over
+                    game.is_active = False
+                    db.session.commit()
+                    
+            except (json.JSONDecodeError, KeyError):
+                # If there's an error parsing the game state, assume it's active
+                active_games.append(game)
+    
+    return render_template('dashboard.html', active_games=active_games, datetime=datetime)
+
+@app.route('/profile')
+@login_required
+def profile():
     # Get all games for the current user
     user_games = Game.query.filter(
         (Game.white_player_id == current_user.id) | 
@@ -170,10 +212,11 @@ def dashboard():
         'games_won': current_user.games_won,
         'games_drawn': current_user.games_drawn,
         'games_lost': current_user.games_lost,
-        'win_rate': round((current_user.games_won / max(current_user.games_played, 1)) * 100, 1)
+        'win_rate': round((current_user.games_won / max(current_user.games_played, 1)) * 100, 1),
+        'elo_rating': current_user.elo_rating
     }
     
-    return render_template('dashboard.html', active_games=active_games, user_stats=user_stats)
+    return render_template('profile.html', active_games=active_games, user_stats=user_stats, datetime=datetime)
 
 @app.route('/new_game', methods=['GET', 'POST'])
 @login_required
@@ -438,6 +481,13 @@ def make_move(game_id):
         
         white_user.games_played += 1
         black_user.games_played += 1
+        
+        # Update ELO ratings for friend games
+        if game.game_type == 'friend':
+            if game.winner == 'white':
+                update_player_ratings(game.white_player_id, game.black_player_id, is_draw=False)
+            else:
+                update_player_ratings(game.black_player_id, game.white_player_id, is_draw=False)
     
     db.session.commit()
     
@@ -577,6 +627,13 @@ def ai_move(game_id):
         
         white_user.games_played += 1
         black_user.games_played += 1
+        
+        # Update ELO ratings for friend games
+        if game.game_type == 'friend':
+            if game.winner == 'white':
+                update_player_ratings(game.white_player_id, game.black_player_id, is_draw=False)
+            else:
+                update_player_ratings(game.black_player_id, game.white_player_id, is_draw=False)
     
     db.session.commit()
     
@@ -643,6 +700,10 @@ def resign_game(game_id):
         if loser_user:
             loser_user.games_lost += 1
             loser_user.games_played += 1
+        
+        # Update ELO ratings for friend games
+        if game.game_type == 'friend':
+            update_player_ratings(winner_id, loser_id, is_draw=False)
     elif loser_id:  # AI game - only update the human player's stats
         loser_user = User.query.get(loser_id)
         if loser_user:
@@ -794,6 +855,60 @@ def get_game_history():
     game_list.sort(key=lambda x: x['created_at'], reverse=True)
     
     return jsonify({'games': game_list})
+
+# ELO Rating Functions
+def calculate_elo_change(player_rating, opponent_rating, result, k_factor=32):
+    """
+    Calculate ELO rating change for a player.
+    
+    Args:
+        player_rating: Current rating of the player
+        opponent_rating: Current rating of the opponent
+        result: 1 for win, 0.5 for draw, 0 for loss
+        k_factor: K-factor for rating volatility (default 32)
+    
+    Returns:
+        Rating change (can be positive or negative)
+    """
+    expected_score = 1 / (1 + 10 ** ((opponent_rating - player_rating) / 400))
+    rating_change = k_factor * (result - expected_score)
+    return round(rating_change)
+
+def update_player_ratings(winner_id, loser_id, is_draw=False):
+    """
+    Update ELO ratings for both players after a game.
+    
+    Args:
+        winner_id: ID of the winning player (None if draw)
+        loser_id: ID of the losing player (None if draw)
+        is_draw: True if the game was a draw
+    """
+    if is_draw:
+        # For draws, both players get 0.5 points
+        if winner_id and loser_id:
+            winner = User.query.get(winner_id)
+            loser = User.query.get(loser_id)
+            if winner and loser:
+                winner_change = calculate_elo_change(winner.elo_rating, loser.elo_rating, 0.5)
+                loser_change = calculate_elo_change(loser.elo_rating, winner.elo_rating, 0.5)
+                
+                winner.elo_rating += winner_change
+                loser.elo_rating += loser_change
+                
+                db.session.commit()
+    else:
+        # For wins/losses
+        if winner_id and loser_id:
+            winner = User.query.get(winner_id)
+            loser = User.query.get(loser_id)
+            if winner and loser:
+                winner_change = calculate_elo_change(winner.elo_rating, loser.elo_rating, 1)
+                loser_change = calculate_elo_change(loser.elo_rating, winner.elo_rating, 0)
+                
+                winner.elo_rating += winner_change
+                loser.elo_rating += loser_change
+                
+                db.session.commit()
 
 if __name__ == '__main__':
     with app.app_context():

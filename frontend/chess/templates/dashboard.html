@@ -14,44 +14,50 @@
         <a href="{{ url_for('new_game') }}" class="btn btn-primary">
             <i class="fas fa-plus"></i> New Game
         </a>
+        <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-user"></i> Profile
+        </a>
     </div>
 </div>
 
+<!-- Quick Stats -->
 <div class="row mt-4">
     <div class="col-md-3">
-        <div class="card text-center game-stat-card" data-filter="won">
+        <div class="card text-center">
             <div class="card-body">
-                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
-                <h5 class="card-title">Games Won</h5>
-                <h2 class="text-warning">{{ user_stats.games_won }}</h2>
+                <i class="fas fa-gamepad fa-2x text-primary mb-2"></i>
+                <h5 class="card-title">Active Games</h5>
+                <h3 class="text-primary">{{ active_games|length }}</h3>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center game-stat-card" data-filter="lost">
+        <div class="card text-center">
             <div class="card-body">
-                <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
-                <h5 class="card-title">Games Lost</h5>
-                <h2 class="text-danger">{{ user_stats.games_lost }}</h2>
+                <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
+                <h5 class="card-title">Recent Wins</h5>
+                <h3 class="text-warning">-</h3>
+                <small class="text-muted">View in Profile</small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center game-stat-card" data-filter="drawn">
+        <div class="card text-center">
             <div class="card-body">
-                <i class="fas fa-handshake fa-3x text-info mb-3"></i>
-                <h5 class="card-title">Games Drawn</h5>
-                <h2 class="text-info">{{ user_stats.games_drawn }}</h2>
+                <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                <h5 class="card-title">ELO Rating</h5>
+                <h3 class="text-success">-</h3>
+                <small class="text-muted">View in Profile</small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center game-stat-card" data-filter="all">
+        <div class="card text-center">
             <div class="card-body">
-                <i class="fas fa-gamepad fa-3x text-success mb-3"></i>
-                <h5 class="card-title">Total Games</h5>
-                <h2 class="text-success">{{ user_stats.games_played }}</h2>
-                <small class="text-muted">Win Rate: {{ user_stats.win_rate }}%</small>
+                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                <h5 class="card-title">Last Game</h5>
+                <h3 class="text-info">-</h3>
+                <small class="text-muted">View in Profile</small>
             </div>
         </div>
     </div>
@@ -60,8 +66,11 @@
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5><i class="fas fa-chess-board"></i> Active Games</h5>
+                <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-chart-bar"></i> View Full Stats
+                </a>
             </div>
             <div class="card-body">
                 {% if active_games %}
@@ -102,7 +111,34 @@
                                         <span class="badge bg-dark">Black</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ game.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% set game_date = game.created_at %}
+                                    {% set now = datetime.utcnow() %}
+                                    {% set diff_days = (now - game_date).days %}
+                                    
+                                    {% if diff_days == 0 %}
+                                        {% set date_display = "Today" %}
+                                    {% elif diff_days == 1 %}
+                                        {% set date_display = "Yesterday" %}
+                                    {% elif diff_days < 7 %}
+                                        {% set date_display = diff_days|string + " days ago" %}
+                                    {% elif diff_days < 30 %}
+                                        {% set weeks = (diff_days // 7) %}
+                                        {% set date_display = weeks|string + " week" + ("s" if weeks > 1 else "") + " ago" %}
+                                    {% elif diff_days < 365 %}
+                                        {% set months = (diff_days // 30) %}
+                                        {% set date_display = months|string + " month" + ("s" if months > 1 else "") + " ago" %}
+                                    {% else %}
+                                        {% set date_display = game_date.strftime('%b %d, %Y') %}
+                                    {% endif %}
+                                    
+                                    {% set time_display = game_date.strftime('%I:%M %p') %}
+                                    
+                                    <div class="d-flex flex-column">
+                                        <small class="text-muted">{{ date_display }}</small>
+                                        <small class="text-muted">{{ time_display }}</small>
+                                    </div>
+                                </td>
                                 <td>
                                     <a href="{{ url_for('game', game_id=game.id) }}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-play"></i> Play
@@ -128,15 +164,40 @@
     </div>
 </div>
 
-<!-- Game History Section -->
+<!-- Quick Actions -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card game-history-section" id="gameHistorySection">
+        <div class="card">
             <div class="card-header">
-                <h5 class="mb-0" id="gameHistoryTitle">Game History</h5>
+                <h5><i class="fas fa-bolt"></i> Quick Actions</h5>
             </div>
-            <div class="card-body" id="gameHistoryContainer">
-                <!-- Game history will be loaded here -->
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('new_game') }}" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="fas fa-plus"></i><br>
+                            New Game
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('profile') }}" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                            <i class="fas fa-user"></i><br>
+                            View Profile
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('profile') }}" class="btn btn-outline-success btn-lg w-100 mb-3">
+                            <i class="fas fa-chart-bar"></i><br>
+                            Game History
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('new_game') }}" class="btn btn-outline-info btn-lg w-100 mb-3">
+                            <i class="fas fa-share"></i><br>
+                            Invite Friend
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -145,146 +206,26 @@
 
 {% block extra_css %}
 <style>
-.game-stat-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
+.card {
+    transition: transform 0.2s ease;
 }
 
-.game-stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+.card:hover {
+    transform: translateY(-2px);
 }
 
-.game-stat-card.selected {
-    border-color: #007bff;
-    background-color: #f8f9fa;
+.btn-lg {
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
-.game-history-section {
-    display: none;
-}
-
-.game-history-section.active {
-    display: block;
+.btn-lg i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 </style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const statCards = document.querySelectorAll('.game-stat-card');
-    const gameHistorySection = document.getElementById('gameHistorySection');
-    
-    statCards.forEach(card => {
-        card.addEventListener('click', function() {
-            const filter = this.dataset.filter;
-            
-            // Remove selection from all cards
-            statCards.forEach(c => c.classList.remove('selected'));
-            
-            // Add selection to clicked card
-            this.classList.add('selected');
-            
-            // Load game history for the selected filter
-            loadGameHistory(filter);
-        });
-    });
-    
-    async function loadGameHistory(filter) {
-        try {
-            const response = await fetch(`/api/games/history?filter=${filter}`);
-            const data = await response.json();
-            
-            if (response.ok) {
-                displayGameHistory(data.games, filter);
-            } else {
-                console.error('Failed to load game history:', data.error);
-            }
-        } catch (error) {
-            console.error('Error loading game history:', error);
-        }
-    }
-    
-    function displayGameHistory(games, filter) {
-        const historyContainer = document.getElementById('gameHistoryContainer');
-        const historyTitle = document.getElementById('gameHistoryTitle');
-        
-        // Update title based on filter
-        const filterNames = {
-            'won': 'Games Won',
-            'lost': 'Games Lost', 
-            'drawn': 'Games Drawn',
-            'all': 'All Games'
-        };
-        
-        historyTitle.textContent = filterNames[filter] || 'Game History';
-        
-        if (games.length === 0) {
-            historyContainer.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="fas fa-chess-board fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No ${filterNames[filter].toLowerCase()}</h5>
-                    <p class="text-muted">Start playing to see your game history!</p>
-                </div>
-            `;
-        } else {
-            let gamesHtml = '';
-            games.forEach(game => {
-                const gameDate = new Date(game.created_at).toLocaleDateString();
-                const gameTime = new Date(game.created_at).toLocaleTimeString();
-                const opponent = game.opponent || 'AI';
-                const result = game.result || 'Unknown';
-                
-                gamesHtml += `
-                    <tr>
-                        <td><code>${game.id.substring(0, 8)}...</code></td>
-                        <td>
-                            <span class="badge ${game.game_type === 'ai' ? 'bg-primary' : 'bg-success'}">
-                                ${game.game_type === 'ai' ? 'vs AI' : 'vs Friend'}
-                            </span>
-                        </td>
-                        <td>${opponent}</td>
-                        <td>
-                            <span class="badge ${result === 'Won' ? 'bg-success' : result === 'Lost' ? 'bg-danger' : 'bg-warning'}">
-                                ${result}
-                            </span>
-                        </td>
-                        <td>${gameDate} ${gameTime}</td>
-                        <td>
-                            <a href="/game/${game.id}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-eye"></i> View
-                            </a>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            historyContainer.innerHTML = `
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Game ID</th>
-                                <th>Type</th>
-                                <th>Opponent</th>
-                                <th>Result</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${gamesHtml}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-        
-        // Show the history section
-        gameHistorySection.classList.add('active');
-    }
-});
-</script>
 {% endblock %} 
