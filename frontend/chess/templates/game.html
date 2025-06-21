@@ -1,0 +1,654 @@
+{% extends "base.html" %}
+
+{% block title %}Chess Game{% endblock %}
+
+{% block content %}
+{% if game.game_type == 'friend' and (game.white_player_id is none or game.black_player_id is none) %}
+<div class="alert alert-info text-center mt-5">
+    <h4>Waiting for your friend to join...</h4>
+    <p>Share this link with your friend to join the game:</p>
+    <a href="{{ url_for('join_game', game_id=game.id, _external=True) }}">{{ url_for('join_game', game_id=game.id, _external=True) }}</a>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4><i class="fas fa-chess-board"></i> Chess Game</h4>
+                <div>
+                    <span class="badge bg-primary me-2" id="gameType">
+                        {% if game.game_type == 'ai' %}vs AI{% else %}vs Friend{% endif %}
+                    </span>
+                    <span class="badge bg-secondary" id="currentPlayer">White's turn</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Time Control Display -->
+                <div class="row mb-3">
+                    <div class="col-6 text-center">
+                        <div class="time-display">
+                            <div class="time-label">White</div>
+                            <div class="time-value" id="whiteTime">10:00</div>
+                        </div>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div class="time-display">
+                            <div class="time-label">Black</div>
+                            <div class="time-value" id="blackTime">10:00</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chess-board-container">
+                    <div id="chessBoard" class="chess-board"></div>
+                </div>
+                <div class="mt-3">
+                    <button id="aiMoveBtn" class="btn btn-warning" style="display: none;">
+                        <i class="fas fa-robot"></i> AI Move
+                    </button>
+                    <button id="resignBtn" class="btn btn-danger float-end">
+                        <i class="fas fa-flag"></i> Resign
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Game Info</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Game ID:</strong> <code>{{ game.id[:8] }}...</code>
+                </div>
+                <div class="mb-3">
+                    <strong>Your Color:</strong> 
+                    {% if game.white_player_id == current_user.id %}
+                        <span class="badge bg-light text-dark">White</span>
+                    {% else %}
+                        <span class="badge bg-dark">Black</span>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <strong>Status:</strong> <span id="gameStatus">Active</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Created:</strong> {{ game.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Move History</h5>
+            </div>
+            <div class="card-body">
+                <div id="moveHistory" class="move-history">
+                    <p class="text-muted text-center">No moves yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Promotion Modal -->
+<div class="modal fade" id="promotionModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose Promotion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="row">
+                    <div class="col-3">
+                        <button class="btn btn-outline-primary promotion-btn" data-piece="q">
+                            <i class="fas fa-chess-queen fa-2x"></i><br>Queen
+                        </button>
+                    </div>
+                    <div class="col-3">
+                        <button class="btn btn-outline-primary promotion-btn" data-piece="r">
+                            <i class="fas fa-chess-rook fa-2x"></i><br>Rook
+                        </button>
+                    </div>
+                    <div class="col-3">
+                        <button class="btn btn-outline-primary promotion-btn" data-piece="b">
+                            <i class="fas fa-chess-bishop fa-2x"></i><br>Bishop
+                        </button>
+                    </div>
+                    <div class="col-3">
+                        <button class="btn btn-outline-primary promotion-btn" data-piece="n">
+                            <i class="fas fa-chess-knight fa-2x"></i><br>Knight
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/chess.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const gameId = '{{ game.id }}';
+const currentUserColor = '{{ "white" if game.white_player_id == current_user.id else "black" }}';
+const gameType = '{{ game.game_type }}';
+
+// Game state
+let board = [];
+let selectedSquare = null;
+let currentPlayer = 'white';
+let gameState = { game_over: false };
+let pendingPromotion = null;
+let timeControl = null;
+let lastMoveTime = null;
+let localLastMoveTime = null;  // Track last move time locally
+let localWhiteTime = null;     // Track white time locally
+let localBlackTime = null;     // Track black time locally
+
+// Initialize the game
+async function initGame() {
+    // Check if we're in waiting mode (no chess board present)
+    const chessBoard = document.getElementById('chessBoard');
+    if (!chessBoard) {
+        // We're in waiting mode, only set up polling for opponent join
+        setInterval(loadGameState, 2000);
+        return;
+    }
+    
+    // Game board is present, initialize full game
+    await loadGameState();
+    renderBoard();
+    updateGameInfo();
+    updateTimeDisplay();
+    
+    // Set up event listeners for game elements
+    const aiMoveBtn = document.getElementById('aiMoveBtn');
+    const resignBtn = document.getElementById('resignBtn');
+    
+    if (aiMoveBtn) {
+        aiMoveBtn.addEventListener('click', makeAIMove);
+    }
+    if (resignBtn) {
+        resignBtn.addEventListener('click', resignGame);
+    }
+    
+    // Set up polling for game updates
+    setInterval(loadGameState, 2000);
+    // Set up time countdown (update every second)
+    setInterval(updateTimeDisplay, 1000);
+}
+
+// Load current game state from server
+async function loadGameState() {
+    try {
+        const response = await fetch(`/api/game/${gameId}/state`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Check if opponent has joined (for friend games)
+            if (gameType === 'friend') {
+                // Check if both players are now assigned
+                const hasWhitePlayer = data.white_player_id !== null;
+                const hasBlackPlayer = data.black_player_id !== null;
+                
+                console.log('Checking opponent join:', {
+                    hasWhitePlayer,
+                    hasBlackPlayer,
+                    whitePlayerId: data.white_player_id,
+                    blackPlayerId: data.black_player_id,
+                    waitingOverlayExists: !!document.querySelector('.alert.alert-info')
+                });
+                
+                // If we're currently showing the waiting overlay but both players are now assigned
+                if (document.querySelector('.alert.alert-info') && hasWhitePlayer && hasBlackPlayer) {
+                    console.log('Opponent has joined! Refreshing page...');
+                    // Opponent has joined! Refresh the page to show the game board
+                    window.location.reload();
+                    return;
+                }
+            }
+            
+            // Check if we're in waiting mode (no chess board present)
+            const chessBoard = document.getElementById('chessBoard');
+            if (!chessBoard) {
+                // We're in waiting mode, don't process game data
+                return;
+            }
+            
+            // Game board is present, process full game data
+            board = data.board;
+            currentPlayer = data.current_player;
+            gameState = data.game_state;
+            timeControl = data.time_control;
+            
+            // Initialize local time values if not set
+            if (localWhiteTime === null) {
+                localWhiteTime = timeControl.white_time_remaining;
+                localBlackTime = timeControl.black_time_remaining;
+                // Set initial last move time if not set
+                if (!localLastMoveTime && data.time_control.last_move_time) {
+                    localLastMoveTime = new Date(data.time_control.last_move_time);
+                } else if (!localLastMoveTime) {
+                    // If no last move time, start counting from now
+                    localLastMoveTime = new Date();
+                }
+            }
+            
+            // Update local last move time if server has a newer one
+            if (data.time_control.last_move_time) {
+                const serverLastMoveTime = new Date(data.time_control.last_move_time);
+                if (!localLastMoveTime || serverLastMoveTime > localLastMoveTime) {
+                    localLastMoveTime = serverLastMoveTime;
+                    // Only update local time values if this is a new move (not just polling)
+                    // We'll update these in the move functions instead
+                }
+            }
+            
+            // Handle resignation separately from chess evaluation
+            if (data.is_resigned && data.resignation_info) {
+                gameState.game_over = true;
+                gameState.resignation = data.resignation_info;
+            }
+            
+            renderBoard();
+            updateGameInfo();
+            updateTimeDisplay();
+            
+            // Show AI move button if it's AI's turn
+            if (gameType === 'ai' && currentPlayer !== currentUserColor && !gameState.game_over) {
+                document.getElementById('aiMoveBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('aiMoveBtn').style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading game state:', error);
+    }
+}
+
+// Render the chess board
+function renderBoard() {
+    const boardElement = document.getElementById('chessBoard');
+    boardElement.innerHTML = '';
+    
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const square = document.createElement('div');
+            square.className = 'chess-square';
+            square.dataset.row = row;
+            square.dataset.col = col;
+            
+            // Set square color
+            if ((row + col) % 2 === 0) {
+                square.classList.add('light');
+            } else {
+                square.classList.add('dark');
+            }
+            
+            // Add piece if present
+            const piece = board[row][col];
+            if (piece) {
+                const pieceElement = document.createElement('div');
+                pieceElement.className = 'chess-piece';
+                pieceElement.textContent = piece.symbol;
+                pieceElement.classList.add(piece.color);
+                square.appendChild(pieceElement);
+            }
+            
+            // Add click handler
+            square.addEventListener('click', () => handleSquareClick(row, col));
+            
+            boardElement.appendChild(square);
+        }
+    }
+}
+
+// Handle square clicks
+function handleSquareClick(row, col) {
+    if (gameState.game_over) return;
+    if (currentPlayer !== currentUserColor) return;
+    
+    const square = board[row][col];
+    // Convert frontend coordinates to algebraic notation
+    // Frontend row 0 = backend row 0 (after flip), so row 6 = rank 2, row 1 = rank 7
+    const rank = 8 - row;  // Convert row to rank (8-6=2 for d2, 8-1=7 for d7)
+    // Frontend col 0 = file 'a', col 7 = file 'h'
+    const file = String.fromCharCode(97 + col);  // Convert col to file (a-h)
+    const coord = `${file}${rank}`;
+    
+    console.log('Click at frontend row:', row, 'col:', col);
+    console.log('Square piece:', square);
+    console.log('Current player:', currentPlayer, 'User color:', currentUserColor);
+    console.log('Generated coord:', coord, 'file:', file, 'rank:', rank);
+    
+    if (selectedSquare) {
+        // Second click - make move
+        const startCoord = selectedSquare;
+        console.log('Making move from', startCoord, 'to', coord);
+        makeMove(startCoord, coord);
+        selectedSquare = null;
+        clearHighlights();
+    } else if (square && square.color === currentUserColor) {
+        // First click - select piece
+        console.log('Selecting piece at', coord);
+        selectedSquare = coord;
+        highlightSquare(row, col, 'selected');
+    }
+}
+
+// Make a move
+async function makeMove(startPos, endPos, promotion = null) {
+    try {
+        const response = await fetch(`/api/game/${gameId}/move`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                start_pos: startPos,
+                end_pos: endPos,
+                promotion: promotion
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            board = data.board;
+            currentPlayer = data.current_player;
+            gameState = data.game_state;
+            
+            // Safely update time control data
+            if (data.time_control) {
+                timeControl = data.time_control;
+                console.log('Move response time control:', data.time_control);
+                
+                // Update local time values and last move time
+                if (timeControl.white_time_remaining !== undefined) {
+                    localWhiteTime = timeControl.white_time_remaining;
+                    console.log('Updated localWhiteTime to:', localWhiteTime);
+                }
+                if (timeControl.black_time_remaining !== undefined) {
+                    localBlackTime = timeControl.black_time_remaining;
+                    console.log('Updated localBlackTime to:', localBlackTime);
+                }
+                localLastMoveTime = new Date();
+                console.log('Updated localLastMoveTime to:', localLastMoveTime);
+            }
+            
+            renderBoard();
+            updateGameInfo();
+            updateTimeDisplay();
+            addMoveToHistory(startPos, endPos, promotion);
+            
+            // Check for promotion
+            if (data.game_state.game_over) {
+                handleGameEnd(data.game_state);
+            }
+        } else {
+            alert(data.error || 'Invalid move');
+        }
+    } catch (error) {
+        console.error('Move error:', error);
+        alert('An error occurred while making the move');
+    }
+}
+
+// Handle AI move
+async function makeAIMove() {
+    try {
+        const response = await fetch(`/api/game/${gameId}/ai_move`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            board = data.board;
+            currentPlayer = data.current_player;
+            gameState = data.game_state;
+            
+            // Safely update time control data
+            if (data.time_control) {
+                timeControl = data.time_control;
+                // Update local time values and last move time
+                if (timeControl.white_time_remaining !== undefined) {
+                    localWhiteTime = timeControl.white_time_remaining;
+                }
+                if (timeControl.black_time_remaining !== undefined) {
+                    localBlackTime = timeControl.black_time_remaining;
+                }
+                localLastMoveTime = new Date();
+            }
+            
+            renderBoard();
+            updateGameInfo();
+            updateTimeDisplay();
+            addMoveToHistory(data.ai_move.start_pos, data.ai_move.end_pos, data.ai_move.promotion);
+            
+            if (data.game_state.game_over) {
+                handleGameEnd(data.game_state);
+            }
+        } else {
+            alert(data.error || 'AI move failed');
+        }
+    } catch (error) {
+        console.error('AI move error:', error);
+        alert('An error occurred during AI move');
+    }
+}
+
+// Update game information display
+function updateGameInfo() {
+    document.getElementById('currentPlayer').textContent = `${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s turn`;
+    
+    const statusElement = document.getElementById('gameStatus');
+    const resignBtn = document.getElementById('resignBtn');
+    
+    if (gameState.game_over) {
+        // Disable resign button when game is over
+        resignBtn.disabled = true;
+        resignBtn.textContent = 'Game Ended';
+        
+        if (gameState.checkmate && gameState.checkmate.checkmate) {
+            const winner = currentPlayer === 'white' ? 'Black' : 'White';
+            statusElement.textContent = `${winner} wins!`;
+            statusElement.className = 'text-success';
+        } else if (gameState.resignation && gameState.resignation.resignation) {
+            const winner = gameState.resignation.winner === 'white' ? 'White' : 'Black';
+            statusElement.textContent = `${winner} wins by resignation`;
+            statusElement.className = 'text-success';
+        } else if (gameState.time_flag && gameState.time_flag.time_flag) {
+            const winner = gameState.time_flag.winner === 'white' ? 'White' : 'Black';
+            statusElement.textContent = `${winner} wins on time`;
+            statusElement.className = 'text-success';
+        } else if (gameState.stalemate && gameState.stalemate.stalemate) {
+            statusElement.textContent = 'Draw - Stalemate';
+            statusElement.className = 'text-warning';
+        } else if (gameState.fifty_move_rule && gameState.fifty_move_rule.fifty_move_rule) {
+            statusElement.textContent = 'Draw - 50 Move Rule';
+            statusElement.className = 'text-warning';
+        } else if (gameState.threefold_repetition && gameState.threefold_repetition.threefold_repetition) {
+            statusElement.textContent = 'Draw - Threefold Repetition';
+            statusElement.className = 'text-warning';
+        } else {
+            statusElement.textContent = 'Game Over';
+            statusElement.className = 'text-danger';
+        }
+    } else {
+        // Enable resign button when game is active
+        resignBtn.disabled = false;
+        resignBtn.textContent = 'Resign';
+        
+        // Check if the current player is in check
+        if (gameState.checkmate && gameState.checkmate.reason && gameState.checkmate.reason.includes('in check')) {
+            statusElement.textContent = 'Check!';
+            statusElement.className = 'text-warning';
+        } else {
+            statusElement.textContent = 'Active';
+            statusElement.className = 'text-success';
+        }
+    }
+}
+
+// Add move to history
+function addMoveToHistory(startPos, endPos, promotion) {
+    const historyElement = document.getElementById('moveHistory');
+    const moveText = `${startPos} → ${endPos}${promotion ? `=${promotion.toUpperCase()}` : ''}`;
+    
+    if (historyElement.querySelector('.text-muted')) {
+        historyElement.innerHTML = '';
+    }
+    
+    const moveElement = document.createElement('div');
+    moveElement.className = 'move-item';
+    moveElement.textContent = moveText;
+    historyElement.appendChild(moveElement);
+}
+
+// Handle game end
+function handleGameEnd(gameState) {
+    let message = '';
+    let winner = '';
+    
+    if (gameState.checkmate.checkmate) {
+        // Determine winner based on whose turn it is (the player who just moved won)
+        winner = currentPlayer === 'white' ? 'Black' : 'White';
+        message = `Checkmate! ${winner} wins!`;
+    } else if (gameState.stalemate.stalemate) {
+        message = 'Stalemate! Game is a draw.';
+    } else if (gameState.fifty_move_rule.fifty_move_rule) {
+        message = 'Fifty-move rule! Game is a draw.';
+    } else if (gameState.threefold_repetition.threefold_repetition) {
+        message = 'Threefold repetition! Game is a draw.';
+    }
+    
+    if (message) {
+        // Update the game status display
+        const statusElement = document.getElementById('gameStatus');
+        statusElement.textContent = winner ? `${winner} wins!` : 'Draw';
+        statusElement.className = winner ? 'text-success' : 'text-warning';
+        
+        // Show alert with detailed message
+        setTimeout(() => {
+            alert(message);
+        }, 500);
+    }
+}
+
+// Utility functions
+function highlightSquare(row, col, type) {
+    const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    square.classList.add(type);
+}
+
+function clearHighlights() {
+    document.querySelectorAll('.chess-square').forEach(square => {
+        square.classList.remove('selected');
+    });
+}
+
+// Resign game function
+async function resignGame() {
+    // Don't allow resigning if game is already over
+    if (gameState.game_over) {
+        alert('The game is already over. You cannot resign.');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to resign? This will end the game and give your opponent the win.')) {
+        try {
+            const response = await fetch(`/api/game/${gameId}/resign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Update game state
+                gameState.game_over = true;
+                gameState.resignation = { resignation: true, winner: data.winner };
+                
+                // Update display
+                updateGameInfo();
+                
+                // Add resignation to move history
+                const historyElement = document.getElementById('moveHistory');
+                const resignElement = document.createElement('div');
+                resignElement.className = 'move-item';
+                resignElement.textContent = `${currentUserColor} resigns`;
+                resignElement.style.color = '#dc3545';
+                resignElement.style.fontWeight = 'bold';
+                historyElement.appendChild(resignElement);
+                
+                // Show winner message
+                alert(data.message);
+            } else {
+                alert(data.error || 'Failed to resign');
+            }
+        } catch (error) {
+            alert('An error occurred while resigning');
+        }
+    }
+}
+
+// Update time display
+function updateTimeDisplay() {
+    if (!timeControl || localWhiteTime === null || localBlackTime === null) return;
+    
+    const now = new Date();
+    let whiteTimeRemaining = localWhiteTime;
+    let blackTimeRemaining = localBlackTime;
+    
+    // Calculate current time if game is active and we have a last move time
+    if (localLastMoveTime && !gameState.game_over) {
+        const timeElapsed = (now - localLastMoveTime) / 1000; // seconds
+        
+        // Deduct time from the player whose turn it currently is
+        if (currentPlayer === 'white') {
+            // White's turn - deduct from white's time
+            whiteTimeRemaining = Math.max(0, whiteTimeRemaining - timeElapsed);
+        } else {
+            // Black's turn - deduct from black's time
+            blackTimeRemaining = Math.max(0, blackTimeRemaining - timeElapsed);
+        }
+    }
+    
+    // Update display
+    document.getElementById('whiteTime').textContent = formatTime(whiteTimeRemaining);
+    document.getElementById('blackTime').textContent = formatTime(blackTimeRemaining);
+    
+    // Add visual indicators for low time
+    const whiteTimeElement = document.getElementById('whiteTime');
+    const blackTimeElement = document.getElementById('blackTime');
+    
+    whiteTimeElement.className = 'time-value';
+    blackTimeElement.className = 'time-value';
+    
+    if (whiteTimeRemaining <= 30) {
+        whiteTimeElement.classList.add(whiteTimeRemaining <= 10 ? 'critical-time' : 'low-time');
+    }
+    if (blackTimeRemaining <= 30) {
+        blackTimeElement.classList.add(blackTimeRemaining <= 10 ? 'critical-time' : 'low-time');
+    }
+}
+
+// Format time in MM:SS format
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Initialize the game when page loads
+document.addEventListener('DOMContentLoaded', initGame);
+</script>
+{% endblock %} 

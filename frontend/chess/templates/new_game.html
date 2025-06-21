@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}New Game - Chess Game{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">
+                    <i class="fas fa-plus"></i> Create New Game
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100 game-option" data-game-type="ai">
+                            <div class="card-body text-center">
+                                <i class="fas fa-robot fa-4x text-primary mb-3"></i>
+                                <h5 class="card-title">Play vs AI</h5>
+                                <p class="card-text">Challenge our chess AI. Perfect for practice and improving your skills.</p>
+                                <ul class="list-unstyled text-start">
+                                    <li><i class="fas fa-check text-success"></i> Instant opponent</li>
+                                    <li><i class="fas fa-check text-success"></i> Practice anytime</li>
+                                    <li><i class="fas fa-check text-success"></i> Adjustable difficulty</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 game-option" data-game-type="friend">
+                            <div class="card-body text-center">
+                                <i class="fas fa-users fa-4x text-success mb-3"></i>
+                                <h5 class="card-title">Play vs Friend</h5>
+                                <p class="card-text">Invite a friend to play chess online. Create private games and compete together.</p>
+                                <ul class="list-unstyled text-start">
+                                    <li><i class="fas fa-check text-success"></i> Real opponent</li>
+                                    <li><i class="fas fa-check text-success"></i> Social gaming</li>
+                                    <li><i class="fas fa-check text-success"></i> Share game link</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="colorChoiceSection" class="mt-3" style="display:none;">
+                    <label for="colorChoice" class="form-label">Choose your color:</label>
+                    <select id="colorChoice" class="form-select">
+                        <option value="random" selected>Random</option>
+                        <option value="white">White</option>
+                        <option value="black">Black</option>
+                    </select>
+                </div>
+                
+                <div id="timeControlSection" class="mt-3" style="display:none;">
+                    <label for="timeControl" class="form-label">Time Control:</label>
+                    <select id="timeControl" class="form-select">
+                        <option value="3+0">Blitz: 3+0</option>
+                        <option value="5+0">Blitz: 5+0</option>
+                        <option value="10+0" selected>Rapid: 10+0</option>
+                        <option value="15+10">Rapid: 15+10</option>
+                        <option value="30+0">Classical: 30+0</option>
+                        <option value="60+0">Classical: 60+0</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                    
+                    <div id="customTimeSection" class="mt-2" style="display:none;">
+                        <div class="row">
+                            <div class="col-6">
+                                <label for="customMinutes" class="form-label">Minutes:</label>
+                                <input type="number" id="customMinutes" class="form-control" min="1" max="180" value="10">
+                            </div>
+                            <div class="col-6">
+                                <label for="customIncrement" class="form-label">Increment (seconds):</label>
+                                <input type="number" id="customIncrement" class="form-control" min="0" max="60" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button id="createGameBtn" class="btn btn-primary btn-lg" disabled>
+                        <i class="fas fa-play"></i> Create Game
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="joinLinkSection" class="alert alert-info mt-4 text-center" style="display:none;"></div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.game-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.game-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.game-option.selected {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.game-option.selected .fas {
+    color: #007bff !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedGameType = null;
+
+document.querySelectorAll('.game-option').forEach(option => {
+    option.addEventListener('click', function() {
+        // Remove selection from all options
+        document.querySelectorAll('.game-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        
+        // Add selection to clicked option
+        this.classList.add('selected');
+        
+        // Enable create button
+        selectedGameType = this.dataset.gameType;
+        document.getElementById('createGameBtn').disabled = false;
+        
+        // Show color choice only for friend games
+        if (selectedGameType === 'friend') {
+            document.getElementById('colorChoiceSection').style.display = '';
+            document.getElementById('timeControlSection').style.display = '';
+        } else {
+            document.getElementById('colorChoiceSection').style.display = 'none';
+            document.getElementById('timeControlSection').style.display = 'none';
+        }
+    });
+});
+
+// Handle time control selection
+document.getElementById('timeControl').addEventListener('change', function() {
+    const customSection = document.getElementById('customTimeSection');
+    if (this.value === 'custom') {
+        customSection.style.display = 'block';
+    } else {
+        customSection.style.display = 'none';
+    }
+});
+
+document.getElementById('createGameBtn').addEventListener('click', async function() {
+    if (!selectedGameType) return;
+    let colorChoice = 'random';
+    let timeControl = document.getElementById('timeControl').value;
+    
+    if (selectedGameType === 'friend') {
+        colorChoice = document.getElementById('colorChoice').value;
+        timeControl = document.getElementById('timeControl').value;
+        
+        // Handle custom time control
+        if (timeControl === 'custom') {
+            const minutes = document.getElementById('customMinutes').value;
+            const increment = document.getElementById('customIncrement').value;
+            timeControl = `${minutes}+${increment}`;
+        }
+    }
+    
+    try {
+        const response = await fetch('/new_game', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                game_type: selectedGameType,
+                color_choice: colorChoice,
+                time_control: timeControl
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            if (selectedGameType === 'friend' && data.join_link) {
+                // Show join link briefly, then redirect to game
+                document.getElementById('joinLinkSection').style.display = '';
+                document.getElementById('joinLinkSection').innerHTML = `
+                    <strong>Share this link with your friend:</strong><br>
+                    <a href="${data.join_link}">${data.join_link}</a><br><br>
+                    <small>Redirecting to game page...</small>
+                `;
+                
+                // Redirect to game page after a short delay
+                setTimeout(() => {
+                    window.location.href = `/game/${data.game_id}`;
+                }, 3000);
+            } else {
+                window.location.href = `/game/${data.game_id}`;
+            }
+        } else {
+            alert(data.error || 'Failed to create game');
+        }
+    } catch (error) {
+        alert('An error occurred while creating the game');
+    }
+});
+</script>
+{% endblock %} 

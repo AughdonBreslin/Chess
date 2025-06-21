@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to Chess Game{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="jumbotron bg-light p-5 rounded">
+            <h1 class="display-4">
+                <i class="fas fa-chess-king text-primary"></i>
+                Welcome to Chess Game
+            </h1>
+            <p class="lead">Play chess against AI or challenge your friends online!</p>
+            <hr class="my-4">
+            <p>Experience the classic game of chess with modern web technology. Create an account to start playing!</p>
+            <div class="d-grid gap-2 d-md-block">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-md-2">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Play vs AI</h5>
+                <p class="card-text">Challenge our intelligent chess AI. Perfect for practice and improving your skills.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Play vs Friends</h5>
+                <p class="card-text">Invite your friends to play chess online. Create private games and compete together.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Track Progress</h5>
+                <p class="card-text">Monitor your performance with detailed statistics and game history.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
