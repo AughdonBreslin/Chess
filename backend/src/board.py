@@ -1,7 +1,8 @@
+import numpy as np
 from collections import Counter
 
 from piece_info import PIECE_FEN, PAWN, coord_to_board, board_to_coord
-from pieces import np, FEN_MAP, ChessPiece, EMPTY, KING, ROOK, PieceType, Color, WHITE, BLACK, FEN_MAP, Empty, Pawn, Rook, King, Knight, Bishop, Queen
+from pieces import FEN_MAP, ChessPiece, EMPTY, KING, ROOK, PieceType, Color, WHITE, BLACK, FEN_MAP, Empty, Pawn, Rook, King, Knight, Bishop, Queen
 
 class Board:
     def __init__(self, fen=None) -> None:

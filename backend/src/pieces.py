@@ -1,5 +1,3 @@
-import numpy as np
-
 from itertools import product
 
 from piece_info import Color, PieceType, PIECE_STR, EMPTY, ROOK, BISHOP, \

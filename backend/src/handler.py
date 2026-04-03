@@ -26,6 +26,7 @@ class Handler:
                 return res
             if move[4] != "=" or move[5] not in "qrbn":
                 res["reason"] = f"Error: Invalid move {move}.  Promotion must be one of 'q', 'r', 'b', 'n'."
+                return res
         
         res["valid"] = True
         res["start_pos"] = board_to_coord(move[0:2])
@@ -33,17 +34,3 @@ class Handler:
         if len(move) == 6:
             res["end_pos"] += (move[5],)
         return res
-
-if __name__ == "__main__":
-    op = Handler()
-    print("Valid move:", op.parse_move("e2e4"))
-    print("Valid move:", op.parse_move("e7e8=q"))
-    print("Invalid move:", op.parse_move("e7e8=qw"))
-    print("Invalid move:", op.parse_move("e7e8=w"))
-    print("Invalid move:", op.parse_move("ee8"))
-    print("Valid move:", op.parse_move("e7e8"))
-
-
-
-
-    

@@ -29,9 +29,8 @@ class GameEvaluator:
 
 
     def is_valid(self, start_pos: tuple[int, int], end_pos: tuple[int, int] | tuple[int, int, str]) -> dict[str, any]:
-        res = {"info": f"Move from {start_pos} to {end_pos}", "reason": ""}
+        res = {"valid": False, "info": f"Move from {start_pos} to {end_pos}", "reason": ""}
         if ChessPiece.out_of_bounds(start_pos):
-            res["valid"] = False
             res["reason"] = f"Start position {start_pos} is out of bounds."
             return res
         
@@ -39,24 +38,20 @@ class GameEvaluator:
         res["piece"] = piece
 
         if piece == EMPTY:
-            res["valid"] = False
             res["reason"] = f"No piece ({piece}) at start position {start_pos}."
             return res
         
         if piece.color != self.board.current_player:
-            res["valid"] = False
             res["reason"] = f"Piece ({piece}) at start position {start_pos} is not the current player's."
             return res
         
         if not piece.can_move(start_pos, end_pos):
-            res["valid"] = False
             res["reason"] = f"Piece ({piece}) at start position {start_pos} cannot move to end position {end_pos}."
             return res
         
         self.set_piece_eval(piece, start_pos)
         validity = self.piece_eval.is_valid(end_pos)
         if not validity["valid"]:
-            res["valid"] = False
             res["reason"] = validity["reason"]
             return res
         
@@ -167,6 +162,18 @@ class GameEvaluator:
             res["threefold_repetition"] = True
             res["fen"] = self.board.fen_counter.most_common(1)[0][0]
         return res
+    
+    def all_valid_moves(self):
+        all_valid_moves = []
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                piece = self.board[i][j]
+                if piece.color != self.board.current_player:
+                    continue
+                self.set_piece_eval(piece, (i, j))
+                all_valid_moves.extend([((i, j), move) for move in piece.moves((i, j))  \
+                                        if self.piece_eval.is_valid(move)["valid"]])
+        return all_valid_moves
 
 
 class PieceEvaluator:
@@ -215,10 +222,9 @@ class PieceEvaluator:
             self.board.board[(self.position[0], end_pos[1])] = Pawn(1 - self.piece.color)
     
     def is_valid(self, end_pos: tuple[int, int]) -> dict[str, any]:
-        res = {"info": f"{self.piece}({self.position} -> {end_pos})", "reason": ""}
+        res = {"valid": False, "info": f"{self.piece}({self.position} -> {end_pos})", "reason": ""}
         capability = self.is_capable(end_pos)
         if not capability["capable"]:
-            res["valid"] = False
             res["reason"] = capability["reason"]
             return res
         
@@ -227,7 +233,6 @@ class PieceEvaluator:
         attacker_pos = self.game_eval.in_check()
         if attacker_pos:
             self.undo_move(original_piece, end_pos)
-            res["valid"] = False
             res["reason"] = f"Move from {self.position} to {end_pos} puts the current player in check by {[f'{self.board[pos]}{pos}' for pos in attacker_pos]}."
             return res
         self.undo_move(original_piece, end_pos)
