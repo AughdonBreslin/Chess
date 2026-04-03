@@ -134,3 +134,13 @@ class TestBoard(unittest.TestCase):
         # Assert
         self.assertEqual(res["stalemate"], False)
         self.assertEqual(res["moves"], [((5, 7), (6, 7))])
+
+    def test_all_valid_moves(self):
+        # Arrange
+        self.board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+
+        # Act
+        res = self.evaluator.all_valid_moves()
+
+        # Assert
+        self.assertEqual(len(res), 20)

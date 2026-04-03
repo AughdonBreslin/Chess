@@ -1,8 +1,4 @@
-Chess project :)
-WIP - backend nearly complete, frontend nearly started
+Chess project
 
-the vision: https://www.figma.com/design/3WdhWRYSZ8DwgWcWywyiwM/Chess?node-id=0-1&t=OPRq36YbT9LSwOFd-1
-
-current progress:
-![alt text](notes/images/home_screen.png)
-![alt text](notes/images/home_screen_hover.png)
+Built a nice chess backend with no libraries (numpy doesn't count).
+Once that's installed, run with a simple python src/chess.py
